@@ -1,0 +1,17 @@
+FROM rust:1
+
+# To check status of tools by nightly versions see: https://rust-lang.github.io/rustup-components-history/index.html
+ENV TOOLCHAIN_VERSION=nightly-2020-06-06
+
+# Project deps
+RUN apt-get update \
+    && apt-get -y install pkg-config libssl-dev make lld
+
+# Use a much faster linker... if it works
+ENV RUSTFLAGS "-C link-arg=-fuse-ld=lld"
+
+# Install nightly toolchain and components
+RUN rustup update \
+    && rustup toolchain install ${TOOLCHAIN_VERSION} \
+    && rustup default ${TOOLCHAIN_VERSION} \
+    && rustup component add rustfmt clippy

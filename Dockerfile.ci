@@ -1,0 +1,5 @@
+FROM toolbox-base-image
+ 
+COPY . .
+
+CMD make lint && make format-check && make test

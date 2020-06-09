@@ -1,0 +1,27 @@
+{
+	"name": "toolbox",
+	"dockerFile": "../Dockerfile.vscode",
+	"settings": {
+		"terminal.integrated.shell.linux": "/bin/bash"
+	},
+	"appPort": [],
+	"remoteUser": "vscode",
+	"extensions": [
+		"matklad.rust-analyzer",
+		"bungcip.better-toml",
+		"mikestead.dotenv",
+		"ms-azuretools.vscode-docker",
+		"eamodio.gitlens",
+		"lfs.vscode-emacs-friendly",
+		"mutantdino.resourcemonitor",
+		"xyz.local-history",
+		"codezombiech.gitignore",
+		"redhat.vscode-yaml",
+	],
+	// Change base on which service is being tested?
+	// Is there a variable name defined in sqlx somewhere to define different names for use by the macros?
+	"containerEnv": {},
+	// Connect the VSCode container to the silly-net network.
+	// This makes databased accessible for development in VSCode's container
+	"runArgs": []
+}
