@@ -3,13 +3,13 @@ name: ci
 on: push
 
 jobs:
-  quality:
+  ci:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - name: setup test environment
+      - name: ci
         run: |
           make dinit
-          && make dbuild-image variant=ci
-          && make dcreate-container variant=ci
-          && make dstart-container variant=ci
+          make dbuild-image variant=ci
+          make dcreate-container variant=ci
+          make dstart-container variant=ci
