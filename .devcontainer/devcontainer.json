@@ -17,6 +17,7 @@
 		"xyz.local-history",
 		"codezombiech.gitignore",
 		"redhat.vscode-yaml",
+		"wayou.vscode-todo-highlight",
 	],
 	// Change base on which service is being tested?
 	// Is there a variable name defined in sqlx somewhere to define different names for use by the macros?

@@ -1,9 +1,8 @@
-use crate::{GetPrivateIP, IPV4_LOCALHOST, IPV6_LOCALHOST};
+use crate::{GetPrivateInterfaces, NetCLIProgram, NetProgramResult};
 use anyhow::Result;
 use async_trait::async_trait;
 use lazy_static::lazy_static;
 use regex::Regex;
-use std::net::IpAddr;
 use std::process::{Command, Output};
 use toolbox_rustbase::CLIProgram;
 
@@ -11,16 +10,13 @@ use toolbox_rustbase::CLIProgram;
 struct IfConfig();
 
 lazy_static! {
-    // Capture the ip definition from ip-s output.
-    // Contains three groups:
-    //  (inet6|inet)    The network interface definition beginning
-    //  (.*?)           The actual IP - this is the interesting group
-    //  /s              First space character
-    static ref RE: Regex = Regex::new(r#"(inet6|inet) (.*?)\s"#).unwrap();
+    // Capture the ip definition from ifconfig-s output.
+    // TODO: Format, simplify and comment
+    static ref RE: Regex = Regex::new(r#"(?P<interface_name>.*?): (?:[\S\s]*?inet (?P<interface_ip_v4>.*?)  netmask){0,1}(?:[\S\s]*?(?:RX|inet6 (?P<interface_ip_v6>.*?)  prefixlen)){0,1}"#).unwrap();
 }
 
 #[async_trait]
-impl CLIProgram<Result<Vec<IpAddr>>> for IfConfig {
+impl CLIProgram<NetProgramResult> for IfConfig {
     fn name(&self) -> &str {
         "ifconfig"
     }
@@ -29,28 +25,25 @@ impl CLIProgram<Result<Vec<IpAddr>>> for IfConfig {
         Ok(Command::new(self.name()).arg("-a").output()?)
     }
 
-    async fn parse_output(&self, output: Output) -> Result<Vec<IpAddr>> {
-        let s = String::from_utf8(output.stdout)?;
-        Ok(RE
-            .captures_iter(&s)
-            .filter_map(|c| c.get(2))
-            .map(|m| m.as_str().parse::<IpAddr>())
-            .filter_map(Result::ok)
-            .filter(|ip| *ip != *IPV4_LOCALHOST && *ip != *IPV6_LOCALHOST)
-            .collect())
+    async fn parse_output(&self, output: Output) -> NetProgramResult {
+        self.parse_output_to_net_interfaces(output).await
     }
 }
 
 #[async_trait]
-impl GetPrivateIP for IfConfig {
-    async fn get_private_ip(&self) -> Result<Vec<IpAddr>> {
-        self.parse_output(self.call().await?).await
+impl NetCLIProgram for IfConfig {
+    fn get_regex(&self) -> &Regex {
+        &RE
     }
 }
+
+#[async_trait]
+impl GetPrivateInterfaces for IfConfig {}
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::net::IpAddr;
     use std::os::unix::process::ExitStatusExt;
     use std::process::ExitStatus;
     use tokio;
@@ -108,39 +101,42 @@ veth60de6b9: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
             stderr: Vec::new(),
             stdout: IP_OUTPUT.into(),
         };
-        let mut real = IfConfig().parse_output(output).await.unwrap();
-        let mut expected = vec![
-            "192.168.0.11",
-            "fe80::6954:9b0a:f51f:e14e",
-            "172.23.0.1",
-            "172.17.0.1",
-            "fe80::42:79ff:fe2b:f5c3",
-            "fe80::d833:3eff:fe68:3a08",
-        ]
-        .iter()
-        .map(|ip| ip.parse::<IpAddr>())
-        .filter_map(Result::ok)
-        .collect::<Vec<IpAddr>>();
+        let real = IfConfig().parse_output(output).await.unwrap();
+        let expected = vec![
+            (
+                "br-b83013461f0c",
+                Some("172.23.0.1".parse::<IpAddr>().unwrap()),
+                None,
+            ),
+            (
+                "docker0",
+                Some("172.17.0.1".parse::<IpAddr>().unwrap()),
+                Some("fe80::42:79ff:fe2b:f5c3".parse::<IpAddr>().unwrap()),
+            ),
+            (
+                "enp34s0",
+                Some("192.168.0.11".parse::<IpAddr>().unwrap()),
+                Some("fe80::6954:9b0a:f51f:e14e".parse::<IpAddr>().unwrap()),
+            ),
+            (
+                "lo",
+                Some("127.0.0.1".parse::<IpAddr>().unwrap()),
+                Some("::1".parse::<IpAddr>().unwrap()),
+            ),
+            (
+                "veth60de6b9",
+                None,
+                Some("fe80::d833:3eff:fe68:3a08".parse::<IpAddr>().unwrap()),
+            ),
+        ];
 
-        // Sort for displaying sake
-        real.sort();
-        expected.sort();
+        for (i, (name, ip_v4, ip_v6)) in expected.iter().enumerate() {
+            let net_interface = real.get(i).unwrap();
 
-        assert_eq!(
-            real.len(),
-            expected.len(),
-            "Real vs. Expected lengths differ.\nReal    : {:?}\nExpected: {:?}",
-            real,
-            expected
-        );
+            assert_eq!(*name, net_interface.name);
 
-        for ip in expected {
-            assert!(
-                real.contains(&ip),
-                "Results missing: {} from {:?}",
-                ip,
-                real
-            );
+            assert_eq!(*ip_v4, net_interface.ip_addr_v4);
+            assert_eq!(*ip_v6, net_interface.ip_addr_v6);
         }
     }
 }
