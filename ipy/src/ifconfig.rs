@@ -1,4 +1,4 @@
-use crate::{GetPrivateInterfaces, NetCLIProgram, NetProgramResult};
+use crate::{GetNetInterfacesResult, GetPrivateInterfaces, NetCLIProgram};
 use anyhow::Result;
 use async_trait::async_trait;
 use lazy_static::lazy_static;
@@ -10,13 +10,13 @@ use toolbox_rustbase::CLIProgram;
 struct IfConfig();
 
 lazy_static! {
-    // Capture the ip definition from ifconfig-s output.
-    // TODO: Format, simplify and comment
+    /// Regex to get all the data from the ifconfig command output
+    /// TODO: Pretty hard to grok, some way to simplify, explain, format?
     static ref RE: Regex = Regex::new(r#"(?P<interface_name>.*?): (?:[\S\s]*?inet (?P<interface_ip_v4>.*?)  netmask){0,1}(?:[\S\s]*?(?:RX|inet6 (?P<interface_ip_v6>.*?)  prefixlen)){0,1}"#).unwrap();
 }
 
 #[async_trait]
-impl CLIProgram<NetProgramResult> for IfConfig {
+impl CLIProgram<GetNetInterfacesResult> for IfConfig {
     fn name(&self) -> &str {
         "ifconfig"
     }
@@ -25,7 +25,7 @@ impl CLIProgram<NetProgramResult> for IfConfig {
         Ok(Command::new(self.name()).arg("-a").output()?)
     }
 
-    async fn parse_output(&self, output: Output) -> NetProgramResult {
+    async fn parse_output(&self, output: Output) -> GetNetInterfacesResult {
         self.parse_output_to_net_interfaces(output).await
     }
 }
@@ -46,7 +46,6 @@ mod tests {
     use std::net::IpAddr;
     use std::os::unix::process::ExitStatusExt;
     use std::process::ExitStatus;
-    use tokio;
 
     const IP_OUTPUT: &str = "
 br-b83013461f0c: flags=4099<UP,BROADCAST,MULTICAST>  mtu 1500

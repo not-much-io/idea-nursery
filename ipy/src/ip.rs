@@ -1,4 +1,4 @@
-use crate::{GetPrivateInterfaces, NetCLIProgram, NetProgramResult};
+use crate::{GetNetInterfacesResult, GetPrivateInterfaces, NetCLIProgram};
 use anyhow::Result;
 use async_trait::async_trait;
 use lazy_static::lazy_static;
@@ -10,13 +10,13 @@ use toolbox_rustbase::CLIProgram;
 struct Ip();
 
 lazy_static! {
-    // Capture the ip definition from ip-s output.
-    // TODO: Format, simplify and comment
-    static ref RE: Regex = Regex::new(r": (?P<interface_name>.*?): (?:[\S\s]*?inet (?P<interface_ip_v4>.*?)/){0,1}(?:[\S\s]*?(?:\n[0-9]|inet6 (?P<interface_ip_v6>.*?)/)){0,1}").unwrap();
+    /// Regex to get all the data from the ip command output
+    /// TODO: Pretty hard to grok, some way to simplify, explain, format?
+    static ref RE: Regex = Regex::new(r#": (?P<interface_name>.*?): (?:[\S\s]*?inet (?P<interface_ip_v4>.*?)/){0,1}(?:[\S\s]*?(?:\n[0-9]|inet6 (?P<interface_ip_v6>.*?)/))"#).unwrap();
 }
 
 #[async_trait]
-impl CLIProgram<NetProgramResult> for Ip {
+impl CLIProgram<GetNetInterfacesResult> for Ip {
     fn name(&self) -> &str {
         "ip"
     }
@@ -25,24 +25,18 @@ impl CLIProgram<NetProgramResult> for Ip {
         Ok(Command::new(self.name()).arg("addr").output()?)
     }
 
-    async fn parse_output(&self, output: Output) -> NetProgramResult {
+    async fn parse_output(&self, output: Output) -> GetNetInterfacesResult {
         self.parse_output_to_net_interfaces(output).await
     }
 }
 
-#[async_trait]
 impl NetCLIProgram for Ip {
     fn get_regex(&self) -> &Regex {
         &RE
     }
 }
 
-#[async_trait]
-impl GetPrivateInterfaces for Ip {
-    async fn get_private_interfaces(&self) -> NetProgramResult {
-        self.parse_output(self.call().await?).await
-    }
-}
+impl GetPrivateInterfaces for Ip {}
 
 #[cfg(test)]
 mod tests {
@@ -50,7 +44,6 @@ mod tests {
     use std::net::IpAddr;
     use std::os::unix::process::ExitStatusExt;
     use std::process::ExitStatus;
-    use tokio;
 
     const IP_OUTPUT: &str = "
 1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN group default qlen 1000
