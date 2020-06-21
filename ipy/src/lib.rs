@@ -60,7 +60,18 @@ trait NetCLIProgram: CLIProgram<GetNetInterfacesResult> {
             let (ip_addr_v4, ip_addr_v6) =
                 match (c.name(REGEX_GROUP_IP_V4), c.name(REGEX_GROUP_IP_V6)) {
                     (None, None) => {
-                        return Err(GetNetInterfacesError::NoIpAddressFound(name.to_string()).into())
+                        // This is an invalid assumption.
+                        // `ip addr` will output ip-less bridges like:
+                        //
+                        // 3: ip6tnl0@NONE: <NOARP> mtu 1452 qdisc noop state DOWN group default qlen 1000
+                        //      link/tunnel6 :: brd ::
+                        //
+                        log::warn!(
+                            "{} for network interface {}",
+                            GetNetInterfacesError::NoIpAddressFound(name.to_string()),
+                            name,
+                        );
+                        continue;
                     }
                     (Some(ip_v4_match), Some(ip_v6_match)) => {
                         (parse_ip_addr(ip_v4_match), parse_ip_addr(ip_v6_match))

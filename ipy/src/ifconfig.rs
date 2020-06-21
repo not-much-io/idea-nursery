@@ -138,4 +138,30 @@ veth60de6b9: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
             assert_eq!(*ip_v6, net_interface.ip_addr_v6);
         }
     }
+
+    #[tokio::test]
+    async fn test_actual_call() {
+        let ifconfig = IfConfig();
+
+        assert!(
+            ifconfig.is_installed(),
+            "ifconfig not installed in environment"
+        );
+
+        let interfaces = ifconfig.get_private_interfaces().await.unwrap();
+
+        assert!(
+            !interfaces.is_empty(),
+            "No network interfaces at all in this environment. Required for test."
+        );
+        for interface in interfaces {
+            assert_ne!(interface.name, "", "Network interface name empty.");
+            assert_ne!(
+                (interface.ip_addr_v4, interface.ip_addr_v6),
+                (None, None),
+                "Ip-less network interface {}.",
+                interface.name,
+            );
+        }
+    }
 }

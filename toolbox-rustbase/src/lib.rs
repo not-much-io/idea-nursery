@@ -14,7 +14,7 @@ pub trait CLIProgram<T> {
             .output()
             .expect("failed to execute `which` command");
 
-        output.stdout.is_empty()
+        !output.stdout.is_empty()
     }
 
     async fn parse_output(&self, output: process::Output) -> T;

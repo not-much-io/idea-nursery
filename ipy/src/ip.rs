@@ -75,7 +75,7 @@ mod tests {
 ";
 
     #[tokio::test]
-    async fn parse_output() {
+    async fn test_parse_output() {
         let output = Output {
             status: ExitStatus::from_raw(0),
             stderr: Vec::new(),
@@ -118,6 +118,29 @@ mod tests {
 
             assert_eq!(*ip_v4, net_interface.ip_addr_v4);
             assert_eq!(*ip_v6, net_interface.ip_addr_v6);
+        }
+    }
+
+    #[tokio::test]
+    async fn test_actual_call() {
+        let ip = Ip();
+
+        assert!(ip.is_installed(), "ip not installed in environment");
+
+        let interfaces = ip.get_private_interfaces().await.unwrap();
+
+        assert!(
+            !interfaces.is_empty(),
+            "No network interfaces at all in this environment. Required for test.",
+        );
+        for interface in interfaces {
+            assert_ne!(interface.name, "", "Network interface name empty.");
+            assert_ne!(
+                (interface.ip_addr_v4, interface.ip_addr_v6),
+                (None, None),
+                "Ip-less network interface {}.",
+                interface.name,
+            );
         }
     }
 }
