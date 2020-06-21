@@ -2,4 +2,6 @@ FROM toolbox-base-image
  
 COPY . .
 
+RUN apt-get update && apt-get -y install ifconfig
+
 CMD make lint && make format-check && make test
