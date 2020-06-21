@@ -2,6 +2,6 @@ FROM toolbox-base-image
  
 COPY . .
 
-RUN apt-get update && apt-get -y install ifconfig
+RUN apt-get update && apt-get -y install net-tools
 
 CMD make lint && make format-check && make test
