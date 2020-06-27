@@ -55,8 +55,8 @@ pub trait NetCLIProgram: CLIProgram<GetNetInterfacesResult> {
         let mut net_interfaces = vec![];
         let debug_output = format!("{:?}", output);
 
-        let s = String::from_utf8(output.stdout)?;
-        for c in self.get_regex().captures_iter(&s) {
+        let stdout = String::from_utf8(output.stdout)?;
+        for c in self.get_regex().captures_iter(&stdout) {
             let interface_name = get_interface_name(&c, &debug_output)?;
             let (ipv4, ipv6) = get_ip_addresses(&c)?;
 
