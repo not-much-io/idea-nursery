@@ -1,4 +1,4 @@
-use crate::{GetNetInterfacesResult, GetPrivateInterfaces, NetCLIProgram};
+use crate::net_interfaces::{GetNetInterfaces, GetNetInterfacesResult, NetCLIProgram};
 use anyhow::Result;
 use async_trait::async_trait;
 use lazy_static::lazy_static;
@@ -9,11 +9,8 @@ use toolbox_rustbase::CLIProgram;
 // https://man7.org/linux/man-pages/man8/ifconfig.8.html
 struct IfConfig();
 
-lazy_static! {
-    /// Regex to get all the data from the ifconfig command output
-    /// TODO: Pretty hard to grok, some way to simplify, explain, format?
-    static ref RE: Regex = Regex::new(r#"(?P<interface_name>.*?): (?:[\S\s]*?inet (?P<interface_ip_v4>.*?)  netmask){0,1}(?:[\S\s]*?(?:RX|inet6 (?P<interface_ip_v6>.*?)  prefixlen)){0,1}"#).unwrap();
-}
+#[async_trait]
+impl GetNetInterfaces for IfConfig {}
 
 #[async_trait]
 impl CLIProgram<GetNetInterfacesResult> for IfConfig {
@@ -37,8 +34,11 @@ impl NetCLIProgram for IfConfig {
     }
 }
 
-#[async_trait]
-impl GetPrivateInterfaces for IfConfig {}
+lazy_static! {
+    /// Regex to get all the data from the ifconfig command output
+    /// TODO: Pretty hard to grok, some way to simplify, explain, format?
+    static ref RE: Regex = Regex::new(r#"(?P<interface_name>.*?): (?:[\S\s]*?inet (?P<interface_ip_v4>.*?)  netmask){0,1}(?:[\S\s]*?(?:RX|inet6 (?P<interface_ip_v6>.*?)  prefixlen)){0,1}"#).unwrap();
+}
 
 #[cfg(test)]
 mod tests {
@@ -47,7 +47,7 @@ mod tests {
     use std::os::unix::process::ExitStatusExt;
     use std::process::ExitStatus;
 
-    const IP_OUTPUT: &str = "
+    const IFCONFIG_OUTPUT: &str = "
 br-b83013461f0c: flags=4099<UP,BROADCAST,MULTICAST>  mtu 1500
     inet 172.23.0.1  netmask 255.255.0.0  broadcast 172.23.255.255
     ether 02:42:5d:8c:83:bc  txqueuelen 0  (Ethernet)
@@ -98,7 +98,7 @@ veth60de6b9: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
         let output = Output {
             status: ExitStatus::from_raw(0),
             stderr: Vec::new(),
-            stdout: IP_OUTPUT.into(),
+            stdout: IFCONFIG_OUTPUT.into(),
         };
         let real = IfConfig().parse_output(output).await.unwrap();
         let expected = vec![
@@ -134,8 +134,8 @@ veth60de6b9: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
 
             assert_eq!(*name, net_interface.name);
 
-            assert_eq!(*ip_v4, net_interface.ip_addr_v4);
-            assert_eq!(*ip_v6, net_interface.ip_addr_v6);
+            assert_eq!(*ip_v4, net_interface.ipv4);
+            assert_eq!(*ip_v6, net_interface.ipv6);
         }
     }
 
@@ -148,7 +148,7 @@ veth60de6b9: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
             "ifconfig not installed in environment"
         );
 
-        let interfaces = ifconfig.get_private_interfaces().await.unwrap();
+        let interfaces = ifconfig.get_net_interfaces().await.unwrap();
 
         assert!(
             !interfaces.is_empty(),
@@ -156,12 +156,6 @@ veth60de6b9: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
         );
         for interface in interfaces {
             assert_ne!(interface.name, "", "Network interface name empty.");
-            assert_ne!(
-                (interface.ip_addr_v4, interface.ip_addr_v6),
-                (None, None),
-                "Ip-less network interface {}.",
-                interface.name,
-            );
         }
     }
 }

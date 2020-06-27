@@ -1,4 +1,4 @@
-use crate::{GetNetInterfacesResult, GetPrivateInterfaces, NetCLIProgram};
+use crate::net_interfaces::{GetNetInterfaces, GetNetInterfacesResult, NetCLIProgram};
 use anyhow::Result;
 use async_trait::async_trait;
 use lazy_static::lazy_static;
@@ -9,11 +9,7 @@ use toolbox_rustbase::CLIProgram;
 // https://man7.org/linux/man-pages/man8/ip.8.html
 struct Ip();
 
-lazy_static! {
-    /// Regex to get all the data from the ip command output
-    /// TODO: Pretty hard to grok, some way to simplify, explain, format?
-    static ref RE: Regex = Regex::new(r#": (?P<interface_name>.*?): (?:[\S\s]*?inet (?P<interface_ip_v4>.*?)/){0,1}(?:[\S\s]*?(?:\n[0-9]|inet6 (?P<interface_ip_v6>.*?)/))"#).unwrap();
-}
+impl GetNetInterfaces for Ip {}
 
 #[async_trait]
 impl CLIProgram<GetNetInterfacesResult> for Ip {
@@ -36,7 +32,11 @@ impl NetCLIProgram for Ip {
     }
 }
 
-impl GetPrivateInterfaces for Ip {}
+lazy_static! {
+    /// Regex to get all the data from the ip command output
+    /// TODO: Pretty hard to grok, some way to simplify, explain, format?
+    static ref RE: Regex = Regex::new(r#": (?P<interface_name>.*?): (?:[\S\s]*?inet (?P<interface_ip_v4>.*?)/){0,1}(?:[\S\s]*?(?:\n[0-9]|inet6 (?P<interface_ip_v6>.*?)/))"#).unwrap();
+}
 
 #[cfg(test)]
 mod tests {
@@ -116,8 +116,8 @@ mod tests {
 
             assert_eq!(*name, net_interface.name);
 
-            assert_eq!(*ip_v4, net_interface.ip_addr_v4);
-            assert_eq!(*ip_v6, net_interface.ip_addr_v6);
+            assert_eq!(*ip_v4, net_interface.ipv4);
+            assert_eq!(*ip_v6, net_interface.ipv6);
         }
     }
 
@@ -127,7 +127,7 @@ mod tests {
 
         assert!(ip.is_installed(), "ip not installed in environment");
 
-        let interfaces = ip.get_private_interfaces().await.unwrap();
+        let interfaces = ip.get_net_interfaces().await.unwrap();
 
         assert!(
             !interfaces.is_empty(),
@@ -135,12 +135,6 @@ mod tests {
         );
         for interface in interfaces {
             assert_ne!(interface.name, "", "Network interface name empty.");
-            assert_ne!(
-                (interface.ip_addr_v4, interface.ip_addr_v6),
-                (None, None),
-                "Ip-less network interface {}.",
-                interface.name,
-            );
         }
     }
 }

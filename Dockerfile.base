@@ -5,7 +5,11 @@ ENV TOOLCHAIN_VERSION=nightly-2020-06-06
 
 # Project deps
 RUN apt-get update \
-    && apt-get -y install pkg-config libssl-dev make lld
+    && apt-get -y install pkg-config libssl-dev make \
+    # Faster linker
+    lld \
+    # Tools used by toolbox
+    net-tools dnsutils
 
 # Use a much faster linker... if it works
 ENV RUSTFLAGS "-C link-arg=-fuse-ld=lld"
