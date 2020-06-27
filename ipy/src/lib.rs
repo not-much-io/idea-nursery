@@ -1,2 +1,2 @@
-mod public_ip;
-mod net_interfaces;
+pub mod net_interfaces;
+pub mod public_ip;

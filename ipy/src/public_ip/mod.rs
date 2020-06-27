@@ -2,8 +2,8 @@ pub mod dig;
 
 use anyhow::Result;
 use async_trait::async_trait;
-use std::net::IpAddr;
 use std::fmt::Debug;
+use std::net::IpAddr;
 use thiserror::Error;
 use toolbox_rustbase::CLIProgram;
 
