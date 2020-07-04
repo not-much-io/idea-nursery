@@ -6,8 +6,6 @@ use std::process;
 pub trait CLIProgram<T> {
     fn name(&self) -> &str;
 
-    async fn call(&self) -> Result<process::Output>;
-
     fn is_installed(&self) -> bool {
         let output = process::Command::new("which")
             .arg(&self.name())
@@ -16,6 +14,8 @@ pub trait CLIProgram<T> {
 
         !output.stdout.is_empty()
     }
+
+    async fn call(&self) -> Result<process::Output>;
 
     async fn parse_output(&self, output: process::Output) -> T;
 }
