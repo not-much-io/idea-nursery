@@ -1,6 +1,6 @@
 [workspace]
 members = [
     "toolbox-rustbase",
-    "ipy",
-    "ipy_cli"
+    "nety",
+    "nety_cli"
 ]
