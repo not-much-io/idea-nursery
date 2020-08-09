@@ -89,10 +89,3 @@ fn display_network_interfaces(net_interfaces: Vec<NetInterface>) {
         println!();
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    fn run() {}
-}

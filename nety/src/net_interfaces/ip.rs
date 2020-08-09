@@ -1,9 +1,15 @@
-use crate::net_interfaces::{GetNetInterfaces, GetNetInterfacesResult, NetCLIProgram};
+use crate::net_interfaces::{
+    GetNetInterfaces, GetNetInterfacesResult, NetCLIProgram, NetInterface,
+};
 use anyhow::Result;
 use async_trait::async_trait;
-use lazy_static::lazy_static;
+use futures::future::join_all;
+use itertools::Itertools;
 use regex::Regex;
+use std::collections::HashMap;
+use std::net::IpAddr;
 use std::process::{Command, Output};
+use tokio::spawn;
 use toolbox_rustbase::CLIProgram;
 
 // https://man7.org/linux/man-pages/man8/ip.8.html
@@ -22,6 +28,11 @@ impl Default for Ip {
 }
 
 impl GetNetInterfaces for Ip {}
+impl NetCLIProgram for Ip {
+    fn get_regex(&self) -> &Regex {
+        todo!()
+    }
+}
 
 #[async_trait]
 impl CLIProgram<GetNetInterfacesResult> for Ip {
@@ -30,25 +41,108 @@ impl CLIProgram<GetNetInterfacesResult> for Ip {
     }
 
     async fn call(&self) -> Result<Output> {
-        Ok(Command::new(self.name()).arg("addr").output()?)
+        Ok(Command::new(self.name())
+            .arg("-o")
+            .arg("addr")
+            .arg("list")
+            .output()?)
     }
 
     async fn parse_output(&self, output: Output) -> GetNetInterfacesResult {
-        self.parse_output_to_net_interfaces(output).await
+        // NOTE: This is done by parsing byte by byte and running in async just for fun.
+        //       The same can be done shorter / simpler via something like s.split("\n").split(" ").map(f) and a loop.
+        //       Performance difference doesn't matter since the input will always be "tiny".
+        let mut line = Vec::new();
+        let mut parsing_handles = Vec::new();
+        for b in output.stdout.into_iter() {
+            line.push(b);
+            if b == b'\n' {
+                parsing_handles.push(spawn(parse_line(line.to_vec())));
+                line.clear();
+            }
+        }
+
+        let name_address_pairs = join_all(parsing_handles)
+            .await
+            .into_iter()
+            .collect::<Result<Vec<(Vec<u8>, Vec<u8>)>, _>>()?;
+
+        let mut net_interfaces: HashMap<String, NetInterface> = HashMap::new();
+        for name_address_pair in name_address_pairs {
+            let name = String::from_utf8(name_address_pair.0)?;
+            let ip_addr = String::from_utf8(name_address_pair.1)?.parse::<IpAddr>()?;
+
+            match net_interfaces.get_mut(&name) {
+                None => {
+                    let ni = NetInterface::new_with_single_ip(&name.to_owned().as_str(), &ip_addr);
+                    net_interfaces.insert(name, ni);
+                }
+                Some(ni) => {
+                    ni.set_ip(&ip_addr);
+                }
+            }
+        }
+
+        Ok(net_interfaces
+            .values()
+            .cloned()
+            .sorted_by(|a, b| Ord::cmp(&a.name, &b.name))
+            .collect::<Vec<NetInterface>>())
     }
 }
 
-impl NetCLIProgram for Ip {
-    fn get_regex(&self) -> &Regex {
-        &RE
-       }
+async fn parse_line(line: Vec<u8>) -> (Vec<u8>, Vec<u8>) {
+    let mut line_iter = line.into_iter();
+    (parse_name(&mut line_iter), parse_ip(&mut line_iter))
 }
 
-lazy_static! {
-    /// Regex to get all the data from the ip command output
-    /// TODO: Pretty hard to grok, some way to simplify, explain, format?
-    /// TODO: : (?P<interface_name>.*?): (?:[\S\s]*?inet (?P<interface_ip_v4>.*?)\/){0,1}(?:[\S\s]*?(?:\n(?! )|inet6 (?P<interface_ip_v6>.*?)\/))
-    static ref RE: Regex = Regex::new(r#": (?P<interface_name>.*?): (?:[\S\s]*?inet (?P<interface_ip_v4>.*?)/){0,1}(?:[\S\s]*?(?:\n[0-9]|inet6 (?P<interface_ip_v6>.*?)/))"#).unwrap();
+fn parse_name(line_iter: &mut dyn Iterator<Item = u8>) -> Vec<u8> {
+    let mut name = Vec::new();
+
+    let mut prev_byte = 0;
+    let mut collecting = false;
+    for curr_byte in line_iter {
+        if collecting && curr_byte == b' ' {
+            break;
+        }
+
+        if prev_byte == b' ' && curr_byte != b' ' {
+            collecting = true;
+        }
+
+        if collecting {
+            name.push(curr_byte);
+        }
+
+        prev_byte = curr_byte;
+    }
+
+    name
+}
+
+fn parse_ip(line_iter: &mut dyn Iterator<Item = u8>) -> Vec<u8> {
+    let mut ip = Vec::new();
+
+    let mut prev_byte = 0;
+    let mut collecting = false;
+    for curr_byte in line_iter {
+        if collecting && curr_byte == b'/' {
+            break;
+        }
+
+        if collecting {
+            ip.push(curr_byte);
+        }
+
+        // inet or inet6
+        if (prev_byte == b't' || prev_byte == b'6') && curr_byte == b' ' {
+            collecting = true;
+        }
+
+        prev_byte = curr_byte;
+    }
+
+    ip
 }
 
 #[cfg(test)]
@@ -58,46 +152,17 @@ mod tests {
     use std::os::unix::process::ExitStatusExt;
     use std::process::ExitStatus;
 
-    /* TODO: Fails with this
-    1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN group default qlen 1000
-        link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
-        inet 127.0.0.1/8 scope host lo
-           valid_lft forever preferred_lft forever
-        */
-    const IP_OUTPUT: &str = "
-1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN group default qlen 1000
-    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
-    inet 127.0.0.1/8 scope host lo
-       valid_lft forever preferred_lft forever
-    inet6 ::1/128 scope host 
-       valid_lft forever preferred_lft forever
-2: enp34s0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc fq_codel state UP group default qlen 1000
-    link/ether 00:d8:61:a9:da:ea brd ff:ff:ff:ff:ff:ff
-    inet 192.168.0.11/24 brd 192.168.0.255 scope global dynamic noprefixroute enp34s0
-       valid_lft 3353sec preferred_lft 3353sec
-    inet6 fe80::6954:9b0a:f51f:e14e/64 scope link noprefixroute 
-       valid_lft forever preferred_lft forever
-3: br-b83013461f0c: <NO-CARRIER,BROADCAST,MULTICAST,UP> mtu 1500 qdisc noqueue state DOWN group default 
-    link/ether 02:42:5d:8c:83:bc brd ff:ff:ff:ff:ff:ff
-    inet 172.23.0.1/16 brd 172.23.255.255 scope global br-b83013461f0c
-       valid_lft forever preferred_lft forever
-4: docker0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue state UP group default 
-    link/ether 02:42:79:2b:f5:c3 brd ff:ff:ff:ff:ff:ff
-    inet 172.17.0.1/16 brd 172.17.255.255 scope global docker0
-       valid_lft forever preferred_lft forever
-    inet6 fe80::42:79ff:fe2b:f5c3/64 scope link 
-       valid_lft forever preferred_lft forever
-9: eth0@if10: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue state UP group default
-    link/ether 02:42:ac:11:00:02 brd ff:ff:ff:ff:ff:ff link-netnsid 0
-    inet 172.17.0.2/16 brd 172.17.255.255 scope global eth0
-        valid_lft forever preferred_lft forever
-26: veth60de6b9@if25: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue master docker0 state UP group default 
-    link/ether da:33:3e:68:3a:08 brd ff:ff:ff:ff:ff:ff link-netnsid 1
-    inet6 fe80::d833:3eff:fe68:3a08/64 scope link 
-       valid_lft forever preferred_lft forever
+    const IP_OUTPUT: &str = r"1: lo    inet 127.0.0.1/8 scope host lo\       valid_lft forever preferred_lft forever
+1: lo    inet6 ::1/128 scope host \       valid_lft forever preferred_lft forever
+2: enp34s0    inet 192.168.0.11/24 brd 192.168.0.255 scope global dynamic noprefixroute enp34s0\       valid_lft 2180sec preferred_lft 2180sec
+2: enp34s0    inet6 fe80::6954:9b0a:f51f:e14e/64 scope link noprefixroute \       valid_lft forever preferred_lft forever
+4: docker0    inet 172.17.0.1/16 brd 172.17.255.255 scope global docker0\       valid_lft forever preferred_lft forever
+4: docker0    inet6 fe80::42:f3ff:fe8b:ca5c/64 scope link \       valid_lft forever preferred_lft forever
+5: br-60984024090a    inet 172.18.0.1/16 brd 172.18.255.255 scope global br-60984024090a\       valid_lft forever preferred_lft forever
+7: veth5e001f8    inet6 fe80::1442:1ff:feb9:41b5/64 scope link \       valid_lft forever preferred_lft forever
 ";
 
-    #[tokio::test]
+    #[tokio::test(core_threads = 6)]
     async fn test_parse_output() {
         let output = Output {
             status: ExitStatus::from_raw(0),
@@ -108,9 +173,14 @@ mod tests {
         let real = Ip().parse_output(output).await.unwrap();
         let expected = vec![
             (
-                "lo",
-                Some("127.0.0.1".parse::<IpAddr>().unwrap()),
-                Some("::1".parse::<IpAddr>().unwrap()),
+                "br-60984024090a",
+                Some("172.18.0.1".parse::<IpAddr>().unwrap()),
+                None,
+            ),
+            (
+                "docker0",
+                Some("172.17.0.1".parse::<IpAddr>().unwrap()),
+                Some("fe80::42:f3ff:fe8b:ca5c".parse::<IpAddr>().unwrap()),
             ),
             (
                 "enp34s0",
@@ -118,24 +188,14 @@ mod tests {
                 Some("fe80::6954:9b0a:f51f:e14e".parse::<IpAddr>().unwrap()),
             ),
             (
-                "br-b83013461f0c",
-                Some("172.23.0.1".parse::<IpAddr>().unwrap()),
-                None,
+                "lo",
+                Some("127.0.0.1".parse::<IpAddr>().unwrap()),
+                Some("::1".parse::<IpAddr>().unwrap()),
             ),
             (
-                "docker0",
-                Some("172.17.0.1".parse::<IpAddr>().unwrap()),
-                Some("fe80::42:79ff:fe2b:f5c3".parse::<IpAddr>().unwrap()),
-            ),
-            (
-                "eth0@if10",
-                Some("172.17.0.2".parse::<IpAddr>().unwrap()),
+                "veth5e001f8",
                 None,
-            ),
-            (
-                "veth60de6b9@if25",
-                None,
-                Some("fe80::d833:3eff:fe68:3a08".parse::<IpAddr>().unwrap()),
+                Some("fe80::1442:1ff:feb9:41b5".parse::<IpAddr>().unwrap()),
             ),
         ];
 
@@ -149,7 +209,7 @@ mod tests {
         }
     }
 
-    #[tokio::test]
+    #[tokio::test(core_threads = 6)]
     async fn test_actual_call() {
         let ip = Ip();
 

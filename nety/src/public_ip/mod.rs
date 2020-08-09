@@ -18,7 +18,7 @@ pub enum GetPublicIPError {
 }
 
 #[async_trait]
-pub trait GetPublicIP: CLIProgram<GetPublicIPResult> {
+pub trait GetPublicIP: CLIProgram<GetPublicIPResult> + Sync {
     async fn get_public_ip(&self) -> GetPublicIPResult {
         self.parse_output(self.call().await?).await
     }
