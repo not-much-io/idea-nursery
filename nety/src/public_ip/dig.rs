@@ -56,7 +56,7 @@ mod tests {
     const DIG_OUTPUT: &str = "95.153.16.81\n";
 
     #[tokio::test]
-    async fn parse_output() {
+    async fn test_parse_output() {
         let output = Output {
             status: ExitStatus::from_raw(0),
             stderr: Vec::new(),

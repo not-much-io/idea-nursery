@@ -1,11 +1,10 @@
 use crate::net_interfaces::{
-    GetNetInterfaces, GetNetInterfacesResult, NetCLIProgram, NetInterface,
+    GetNetInterfaces, GetNetInterfacesError, GetNetInterfacesResult, NetInterface,
 };
 use anyhow::Result;
 use async_trait::async_trait;
 use futures::future::join_all;
 use itertools::Itertools;
-use regex::Regex;
 use std::collections::HashMap;
 use std::net::IpAddr;
 use std::process::{Command, Output};
@@ -28,11 +27,6 @@ impl Default for Ip {
 }
 
 impl GetNetInterfaces for Ip {}
-impl NetCLIProgram for Ip {
-    fn get_regex(&self) -> &Regex {
-        todo!()
-    }
-}
 
 #[async_trait]
 impl CLIProgram<GetNetInterfacesResult> for Ip {
@@ -68,13 +62,20 @@ impl CLIProgram<GetNetInterfacesResult> for Ip {
             .collect::<Result<Vec<(Vec<u8>, Vec<u8>)>, _>>()?;
 
         let mut net_interfaces: HashMap<String, NetInterface> = HashMap::new();
-        for name_address_pair in name_address_pairs {
-            let name = String::from_utf8(name_address_pair.0)?;
-            let ip_addr = String::from_utf8(name_address_pair.1)?.parse::<IpAddr>()?;
+        for (name_bs, ip_bs) in name_address_pairs {
+            if name_bs.is_empty() {
+                return Err(GetNetInterfacesError::NoNameForInterfaceFound().into());
+            }
+            if ip_bs.is_empty() {
+                return Err(GetNetInterfacesError::NoAddrForInterfaceFound().into());
+            }
+
+            let name = String::from_utf8(name_bs)?;
+            let ip_addr = String::from_utf8(ip_bs)?.parse::<IpAddr>()?;
 
             match net_interfaces.get_mut(&name) {
                 None => {
-                    let ni = NetInterface::new_with_single_ip(&name.to_owned().as_str(), &ip_addr);
+                    let ni = NetInterface::new_with_single_ip(&name.as_str(), &ip_addr);
                     net_interfaces.insert(name, ni);
                 }
                 Some(ni) => {

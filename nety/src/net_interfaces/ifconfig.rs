@@ -1,8 +1,11 @@
-use crate::net_interfaces::{GetNetInterfaces, GetNetInterfacesResult, NetCLIProgram};
+use crate::net_interfaces::{
+    GetNetInterfaces, GetNetInterfacesError, GetNetInterfacesResult, NetInterface,
+};
 use anyhow::Result;
 use async_trait::async_trait;
 use lazy_static::lazy_static;
-use regex::Regex;
+use regex::{Captures, Match, Regex};
+use std::net::IpAddr;
 use std::process::{Command, Output};
 use toolbox_rustbase::CLIProgram;
 
@@ -35,16 +38,43 @@ impl CLIProgram<GetNetInterfacesResult> for IfConfig {
     }
 
     async fn parse_output(&self, output: Output) -> GetNetInterfacesResult {
-        self.parse_output_to_net_interfaces(output).await
+        let mut net_interfaces = vec![];
+
+        let stdout = String::from_utf8(output.stdout)?;
+        for c in RE.captures_iter(&stdout) {
+            let interface_name = get_interface_name(&c)?;
+            let (ipv4, ipv6) = get_ip_addresses(&c)?;
+
+            net_interfaces.push(NetInterface::new(&interface_name.to_string(), &ipv4, &ipv6));
+        }
+
+        Ok(net_interfaces)
     }
 }
 
-#[async_trait]
-impl NetCLIProgram for IfConfig {
-    fn get_regex(&self) -> &Regex {
-        &RE
+fn get_interface_name(c: &Captures) -> Result<String> {
+    Ok(c.name(REGEX_GROUP_NAME)
+        .ok_or_else(GetNetInterfacesError::NoNameForInterfaceFound)?
+        .as_str()
+        .into())
+}
+
+fn get_ip_addresses(c: &Captures) -> Result<(Option<IpAddr>, Option<IpAddr>)> {
+    let parse_ip_addr = |m: Match| m.as_str().parse::<IpAddr>().ok()?.into();
+
+    match (c.name(REGEX_GROUP_IPV4), c.name(REGEX_GROUP_IPV6)) {
+        (None, None) => Err(GetNetInterfacesError::NoAddrForInterfaceFound().into()),
+        (Some(ipv4_match), None) => Ok((parse_ip_addr(ipv4_match), None)),
+        (None, Some(ipv6_match)) => Ok((None, parse_ip_addr(ipv6_match))),
+        (Some(ipv4_match), Some(ipv6_match)) => {
+            Ok((parse_ip_addr(ipv4_match), parse_ip_addr(ipv6_match)))
+        }
     }
 }
+
+const REGEX_GROUP_NAME: &str = "interface_name";
+const REGEX_GROUP_IPV4: &str = "interface_ip_v4";
+const REGEX_GROUP_IPV6: &str = "interface_ip_v6";
 
 lazy_static! {
     /// Regex to get all the data from the ifconfig command output
