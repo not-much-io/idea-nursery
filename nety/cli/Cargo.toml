@@ -8,16 +8,18 @@ edition = "2018"
 
 [dependencies]
 clap = "3.0.0-beta.1"
-nety = {path = "../nety"}
-lazy_static = "1.4"
-thiserror = "1.0"
-anyhow = "1.0"
-tokio = "0.2"
-futures = "0.3"
 log = "0.4"
 env_logger = "0.7.1"
+nety = {path = "../nety"}
+# TODO: create a prelude in rustbase?
+async-trait = "0.1"
+anyhow = "1.0"
+thiserror = "1.0"
+tokio = "0.2"
+futures = "0.3"
+itertools = "0.9"
+lazy_static = "1.4"
 
 [[bin]]
-bench = false
 path = "src/main.rs"
 name = "nety"
