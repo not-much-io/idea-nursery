@@ -38,18 +38,18 @@ async fn main() {
 
 #[derive(Error, Debug)]
 pub enum NetyError {
-    #[error("TODO")]
+    #[error("No tools for getting network interfaces installed")]
     NoGetNetInterfacesToolInstalled,
-    #[error("TODO")]
+    #[error("No tools for getting the public ip installed")]
     NoGetPublicIPToolInstalled,
 }
 
 lazy_static! {
     // Public ip tools in priority order
-    static ref GET_PUBLIC_IP_TOOLS: [Box<dyn GetPublicIP + Sync>; 1] = [Box::new(Dig::default())];
+    static ref GET_PUBLIC_IP_TOOLS: [Box<dyn GetPublicIP>; 1] = [Box::new(Dig::default())];
 
     // Network interface tools in priority order
-    static ref GET_NET_INTERFACES_TOOLS: [Box<dyn GetNetInterfaces + Sync>; 2] =
+    static ref GET_NET_INTERFACE_TOOLS: [Box<dyn GetNetInterfaces>; 2] =
         [Box::new(Ip::default()), Box::new(IfConfig::default())];
 }
 
@@ -62,7 +62,7 @@ async fn get_public_ip() -> GetPublicIPResult {
 }
 
 async fn get_net_interfaces() -> GetNetInterfacesResult {
-    if let Some(t) = GET_NET_INTERFACES_TOOLS.iter().find(|t| t.is_installed()) {
+    if let Some(t) = GET_NET_INTERFACE_TOOLS.iter().find(|t| t.is_installed()) {
         return t.get_net_interfaces().await;
     }
 
