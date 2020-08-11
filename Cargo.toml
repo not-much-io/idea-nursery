@@ -1,6 +1,6 @@
 [workspace]
 members = [
     "toolbox-rustbase",
-    "nety",
-    "nety_cli"
+    "nety/nety",
+    "nety/cli"
 ]
