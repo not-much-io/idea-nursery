@@ -30,29 +30,29 @@ impl Watcher {
     pub fn watch(mut self) -> (Arc<Mutex<Watcher>>, JoinHandle<()>) {
         self.is_running = true;
 
-        let am = Arc::new(Mutex::new(self));
-        let am_clone = Arc::clone(&am);
+        let arc_mutex_self = Arc::new(Mutex::new(self));
+        let arc_mutex_self_clone = Arc::clone(&arc_mutex_self);
 
         let handle = spawn(move || {
             let mut previous_output = Vec::new();
             loop {
-                let mut mg = am.lock();
-                if !mg.is_running {
+                let mut watcher = arc_mutex_self.lock();
+                if !watcher.is_running {
                     break;
                 }
 
-                let out = mg.cmd_to_monitor.output().unwrap();
+                let out = watcher.cmd_to_monitor.output().unwrap();
                 if out.stdout != previous_output {
-                    mg.cmd_to_trigger.spawn().unwrap();
+                    watcher.cmd_to_trigger.spawn().unwrap();
                 }
                 previous_output = out.stdout;
 
-                sleep(mg.interval);
-                MutexGuard::unlock_fair(mg);
+                sleep(watcher.interval);
+                MutexGuard::unlock_fair(watcher);
             }
         });
 
-        (am_clone, handle)
+        (arc_mutex_self_clone, handle)
     }
 
     pub fn stop(&mut self) {
@@ -75,14 +75,14 @@ mod tests {
         let mut echo_done = Command::new("touch");
         echo_done.arg(trigger_created_file_name);
 
-        let interval = Duration::from_millis(250);
+        let interval = Duration::from_millis(25);
 
         let mut watcher = Watcher::new(sec_since_epoch, echo_done);
         watcher.interval(interval);
 
-        let (amw, handle) = watcher.watch();
-        sleep(Duration::from_secs(1));
-        amw.lock().stop();
+        let (watcher_mutex, handle) = watcher.watch();
+        sleep(Duration::from_millis(50));
+        watcher_mutex.lock().stop();
         handle.join().expect("Join on watcher thread failed");
 
         let status_code = Command::new("rm")
