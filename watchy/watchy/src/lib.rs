@@ -1,62 +1,113 @@
 use parking_lot::{Mutex, MutexGuard};
 use std::process::Command;
 use std::sync::Arc;
-use std::thread::{sleep, spawn, JoinHandle};
+use std::thread::{sleep, spawn, JoinHandle, Result as ThreadResult};
 use std::time::Duration;
 
+/// Watcher will repeatedly run a command and monitor the output of it for changes.
+/// If the output changes a separate command will be triggered.
 pub struct Watcher {
     cmd_to_monitor: Command,
     cmd_to_trigger: Command,
     interval:       Duration,
-    is_running:     bool,
 }
 
 impl Watcher {
+    /// Create a new watcher, will default to an interval of 1 second.
     pub fn new(cmd_to_monitor: Command, cmd_to_trigger: Command) -> Watcher {
         Watcher {
             cmd_to_monitor,
             cmd_to_trigger,
-
-            is_running: false,
             interval: Duration::new(1, 0),
         }
     }
 
+    /// Builder pattern for setting the interval of running the command to monitor.
     pub fn interval(&mut self, interval: Duration) -> &mut Watcher {
         self.interval = interval;
         self
     }
 
-    pub fn watch(mut self) -> (Arc<Mutex<Watcher>>, JoinHandle<()>) {
-        self.is_running = true;
+    /// Start the Watcher in a separate thread and return a WatcherHandle to manipulate the watcher thread.
+    /// ```
+    /// use std::process::Command;
+    /// use watchy::Watcher;
+    ///
+    /// let handle = Watcher::new(Command::new("ls"), Command::new("ls")).watch();
+    /// handle.stop_and_join();
+    /// ```
+    pub fn watch(mut self) -> WatcherHandle {
+        let handle = Arc::new(Mutex::new(WatcherHandleInner::default()));
+        let handle_clone = Arc::clone(&handle);
 
-        let arc_mutex_self = Arc::new(Mutex::new(self));
-        let arc_mutex_self_clone = Arc::clone(&arc_mutex_self);
-
-        let handle = spawn(move || {
+        let join_handle = spawn(move || {
             let mut previous_output = Vec::new();
             loop {
-                let mut watcher = arc_mutex_self.lock();
-                if !watcher.is_running {
+                let handle = handle.lock();
+                if !handle.is_running {
                     break;
                 }
 
-                let out = watcher.cmd_to_monitor.output().unwrap();
+                let out = self.cmd_to_monitor.output().unwrap();
                 if out.stdout != previous_output {
-                    watcher.cmd_to_trigger.spawn().unwrap();
+                    self.cmd_to_trigger.spawn().unwrap();
                 }
                 previous_output = out.stdout;
 
-                sleep(watcher.interval);
-                MutexGuard::unlock_fair(watcher);
+                sleep(self.interval);
+                MutexGuard::unlock_fair(handle);
             }
         });
 
-        (arc_mutex_self_clone, handle)
+        WatcherHandle::new(handle_clone, join_handle)
+    }
+}
+
+/// WatcherHandle enables controlling the watchers thread.
+pub struct WatcherHandle {
+    inner:       Arc<Mutex<WatcherHandleInner>>,
+    join_handle: JoinHandle<()>,
+}
+
+impl WatcherHandle {
+    fn new(inner: Arc<Mutex<WatcherHandleInner>>, join_handle: JoinHandle<()>) -> Self {
+        WatcherHandle { inner, join_handle }
     }
 
+    /// Returns if the Watcher thread is semantically running.
+    /// Even if this returns false in practice it may still be running it's final loop before termination.
+    /// To make sure the logic loop has stopped use join() or stop_and_join().
+    pub fn is_running(&self) -> bool {
+        self.inner.lock().is_running
+    }
+
+    /// Signals the Watcher to stop.
+    /// In practice the logic loop might still finish up it's final loop before termination.
+    /// To make sure the logic loop has stopped use join() or stop_and_join().
     pub fn stop(&mut self) {
-        self.is_running = false;
+        self.inner.lock().is_running = false;
+    }
+
+    /// Join the thread running the watcher logic loop.
+    pub fn join(self) -> ThreadResult<()> {
+        self.join_handle.join()
+    }
+
+    /// Signal the Watcher to stop and wait for it's thread to terminate.
+    pub fn stop_and_join(mut self) -> ThreadResult<()> {
+        self.stop();
+        self.join()
+    }
+}
+
+/// Inner representation of WatcherHandle
+struct WatcherHandleInner {
+    is_running: bool,
+}
+
+impl Default for WatcherHandleInner {
+    fn default() -> Self {
+        WatcherHandleInner { is_running: true }
     }
 }
 
@@ -80,10 +131,12 @@ mod tests {
         let mut watcher = Watcher::new(sec_since_epoch, echo_done);
         watcher.interval(interval);
 
-        let (watcher_mutex, handle) = watcher.watch();
+        let watcher_handle = watcher.watch();
+
         sleep(Duration::from_millis(50));
-        watcher_mutex.lock().stop();
-        handle.join().expect("Join on watcher thread failed");
+        watcher_handle
+            .stop_and_join()
+            .expect("Join on watcher thread failed");
 
         let status_code = Command::new("rm")
             .arg(trigger_created_file_name)
