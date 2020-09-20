@@ -1,15 +1,12 @@
-use crate::net_interfaces::{
-    GetNetInterfaces, GetNetInterfacesError, GetNetInterfacesResult, NetInterface,
-};
-use anyhow::Result;
-use async_trait::async_trait;
-use futures::future::join_all;
-use itertools::Itertools;
 use std::collections::HashMap;
 use std::net::IpAddr;
 use std::process::{Command, Output};
-use tokio::spawn;
-use idea_nursery_prelude::CLIProgram;
+
+use crate::net_interfaces::{
+    GetNetInterfaces, GetNetInterfacesError, GetNetInterfacesResult, NetInterface,
+};
+
+use nursery_prelude::library_prelude::*;
 
 // https://man7.org/linux/man-pages/man8/ip.8.html
 pub struct Ip();
@@ -51,12 +48,12 @@ impl CLIProgram<GetNetInterfacesResult> for Ip {
         for b in output.stdout.into_iter() {
             line.push(b);
             if b == b'\n' {
-                parsing_handles.push(spawn(parse_line(line.to_vec())));
+                parsing_handles.push(tokio::spawn(parse_line(line.to_vec())));
                 line.clear();
             }
         }
 
-        let name_address_pairs = join_all(parsing_handles)
+        let name_address_pairs = futures::future::join_all(parsing_handles)
             .await
             .into_iter()
             .collect::<Result<Vec<(Vec<u8>, Vec<u8>)>, _>>()?;

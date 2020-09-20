@@ -1,12 +1,10 @@
 pub mod ifconfig;
 pub mod ip;
 
-use anyhow::Result;
-use async_trait::async_trait;
 use std::fmt::Debug;
 use std::net::IpAddr;
-use thiserror::Error;
-use idea_nursery_prelude::CLIProgram;
+
+use nursery_prelude::library_prelude::*;
 
 #[async_trait]
 pub trait GetNetInterfaces: CLIProgram<GetNetInterfacesResult> + Sync {
@@ -47,7 +45,7 @@ impl NetInterface {
         }
     }
 
-    fn set_ip(self: &mut Self, ip: &IpAddr) {
+    fn set_ip(&mut self, ip: &IpAddr) {
         match ip {
             IpAddr::V4(_) => {
                 self.ipv4 = Some(*ip);

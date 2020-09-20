@@ -1,11 +1,9 @@
 pub mod dig;
 
-use anyhow::Result;
-use async_trait::async_trait;
 use std::fmt::Debug;
 use std::net::IpAddr;
-use thiserror::Error;
-use idea_nursery_prelude::CLIProgram;
+
+use nursery_prelude::library_prelude::*;
 
 // NOTE: In reality a device can have multiple public IPs.
 // 	Currently not implemented, would fail to parse.

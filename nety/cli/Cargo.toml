@@ -7,18 +7,8 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-clap = "3.0.0-beta.2"
-log = "0.4"
-env_logger = "0.7.1"
+nursery-prelude = {path = "../../nursery-prelude"}
 nety = {path = "../nety"}
-# TODO: create a prelude in rustbase?
-async-trait = "0.1"
-anyhow = "1.0"
-thiserror = "1.0"
-tokio = "0.2"
-futures = "0.3"
-itertools = "0.9"
-lazy_static = "1.4"
 
 [[bin]]
 path = "src/main.rs"

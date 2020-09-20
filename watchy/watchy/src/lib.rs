@@ -1,8 +1,9 @@
-use parking_lot::{Mutex, MutexGuard};
 use std::process::Command;
 use std::sync::Arc;
 use std::thread::{sleep, spawn, JoinHandle, Result as ThreadResult};
 use std::time::Duration;
+
+use nursery_prelude::library_prelude::*;
 
 /// Watcher will repeatedly run a command and monitor the output of it for changes.
 /// If the output changes a separate command will be triggered.

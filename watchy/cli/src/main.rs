@@ -1,33 +1,35 @@
-use anyhow::Result;
-use clap::{App, Arg};
-use log::LevelFilter;
 use std::{process::Command, str::FromStr, time::Duration};
+
+use nursery_prelude::application_prelude::*;
+
 use watchy::Watcher;
 
 #[tokio::main]
 async fn main() {
-    env_logger::builder().filter_level(LevelFilter::Info).init();
+    env_logger::builder()
+        .filter_level(log::LevelFilter::Info)
+        .init();
 
     let key_cmd_to_monitor = "cmd-to-monitor";
     let key_cmd_to_trigger = "cmd-to-trigger";
     let key_interval = "interval";
-    let matches = App::new("watchy")
+    let matches = clap::App::new("watchy")
         .version("0.1")
         .author("kristo.koert@gmail.com")
         .about("A tool for monitoring a command for changes and triggering a separate command on change")
-        .arg(Arg::new(key_cmd_to_monitor)
+        .arg(clap::Arg::new(key_cmd_to_monitor)
             .long(key_cmd_to_monitor)
             .about("The command to repeatedly execute and monitor for changes")
             .value_name("COMMAND TO MONITOR")
             .required(true)
             .takes_value(true))
-        .arg(Arg::new(key_cmd_to_trigger)
+        .arg(clap::Arg::new(key_cmd_to_trigger)
             .long(key_cmd_to_trigger)
             .about("The command to trigger when the output of the command to monitor changes")
             .value_name("COMMAND")
             .required(true)
             .takes_value(true))
-        .arg(Arg::new(key_interval)
+        .arg(clap::Arg::new(key_interval)
             .long(key_interval)
             .about("The interval between executing the monitoring command in milliseconds")
             .value_name("INTERVAL")
@@ -53,12 +55,12 @@ async fn main() {
 struct CommandWrapper(Command);
 
 impl FromStr for CommandWrapper {
-    type Err = anyhow::Error;
+    type Err = Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         if s.is_empty() {
             // NOTE: Shouldn't happen with clap takes_value(true)
-            return Err(anyhow::anyhow!("command is empty"));
+            return Err(anyhow!("command is empty"));
         }
 
         let mut split = s.split_whitespace();

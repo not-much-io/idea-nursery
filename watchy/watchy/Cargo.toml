@@ -7,17 +7,4 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-log = "0.4"
-idea-nursery-prelude = {path = "../../idea-nursery-prelude"}
-# TODO: create a prelude in rustbase?
-async-trait = "0.1"
-anyhow = "1.0"
-thiserror = "1.0"
-tokio = "0.2"
-futures = "0.3"
-itertools = "0.9"
-parking_lot = "0.11"
-lazy_static = "1.4"
-
-[dev-dependencies]
-tokio = {version = "0.2", features = ["full"]}  # TODO: cut back features
+nursery-prelude = {path = "../../nursery-prelude"}

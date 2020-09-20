@@ -1,9 +1,9 @@
-use crate::public_ip::{GetPublicIP, GetPublicIPError, GetPublicIPResult};
-use anyhow::Result;
-use async_trait::async_trait;
 use std::net::IpAddr;
 use std::process::{Command, Output};
-use idea_nursery_prelude::CLIProgram;
+
+use nursery_prelude::library_prelude::*;
+
+use crate::public_ip::{GetPublicIP, GetPublicIPError, GetPublicIPResult};
 
 // https://linux.die.net/man/1/dig
 pub struct Dig();

@@ -1,13 +1,11 @@
+use std::net::IpAddr;
+use std::process::{Command, Output};
+
+use nursery_prelude::library_prelude::*;
+
 use crate::net_interfaces::{
     GetNetInterfaces, GetNetInterfacesError, GetNetInterfacesResult, NetInterface,
 };
-use anyhow::Result;
-use async_trait::async_trait;
-use lazy_static::lazy_static;
-use regex::{Captures, Match, Regex};
-use std::net::IpAddr;
-use std::process::{Command, Output};
-use idea_nursery_prelude::CLIProgram;
 
 // https://man7.org/linux/man-pages/man8/ifconfig.8.html
 pub struct IfConfig();
@@ -52,15 +50,15 @@ impl CLIProgram<GetNetInterfacesResult> for IfConfig {
     }
 }
 
-fn get_interface_name(c: &Captures) -> Result<String> {
+fn get_interface_name(c: &regex::Captures) -> Result<String> {
     Ok(c.name(REGEX_GROUP_NAME)
         .ok_or_else(GetNetInterfacesError::NoNameForInterfaceFound)?
         .as_str()
         .into())
 }
 
-fn get_ip_addresses(c: &Captures) -> Result<(Option<IpAddr>, Option<IpAddr>)> {
-    let parse_ip_addr = |m: Match| m.as_str().parse::<IpAddr>().ok()?.into();
+fn get_ip_addresses(c: &regex::Captures) -> Result<(Option<IpAddr>, Option<IpAddr>)> {
+    let parse_ip_addr = |m: regex::Match| m.as_str().parse::<IpAddr>().ok()?.into();
 
     match (c.name(REGEX_GROUP_IPV4), c.name(REGEX_GROUP_IPV6)) {
         (None, None) => Err(GetNetInterfacesError::NoAddrForInterfaceFound().into()),
@@ -79,7 +77,7 @@ const REGEX_GROUP_IPV6: &str = "interface_ip_v6";
 lazy_static! {
     /// Regex to get all the data from the ifconfig command output
     /// TODO: Pretty hard to grok, some way to simplify, explain, format?
-    static ref RE: Regex = Regex::new(r#"(?P<interface_name>.*?): (?:[\S\s]*?inet (?P<interface_ip_v4>.*?)  netmask){0,1}(?:[\S\s]*?(?:RX|inet6 (?P<interface_ip_v6>.*?)  prefixlen)){0,1}"#).unwrap();
+    static ref RE: regex::Regex = regex::Regex::new(r#"(?P<interface_name>.*?): (?:[\S\s]*?inet (?P<interface_ip_v4>.*?)  netmask){0,1}(?:[\S\s]*?(?:RX|inet6 (?P<interface_ip_v6>.*?)  prefixlen)){0,1}"#).unwrap();
 }
 
 #[cfg(test)]

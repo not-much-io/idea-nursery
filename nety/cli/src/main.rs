@@ -1,38 +1,36 @@
-use clap::App;
-use futures::join;
-use lazy_static::lazy_static;
-use log::LevelFilter;
+use std::net::IpAddr;
+
+use nursery_prelude::application_prelude::*;
+
 use nety::net_interfaces::ifconfig::IfConfig;
 use nety::net_interfaces::ip::Ip;
 use nety::net_interfaces::{GetNetInterfaces, GetNetInterfacesResult, NetInterface};
 use nety::public_ip::dig::Dig;
 use nety::public_ip::{GetPublicIP, GetPublicIPResult};
-use std::net::IpAddr;
-use thiserror::Error;
-
-#[macro_use]
-extern crate log;
 
 #[tokio::main]
 async fn main() {
-    env_logger::builder().filter_level(LevelFilter::Info).init();
+    env_logger::builder()
+        .filter_level(log::LevelFilter::Info)
+        .init();
 
-    let _matches = App::new("nety")
+    let _matches = clap::App::new("nety")
         .version("0.1")
         .author("kristo.koert@gmail.com")
         .about("A tool for gathering networking related information")
         .get_matches();
 
-    let (public_ip_res, network_interfaces_res) = join!(get_public_ip(), get_net_interfaces());
+    let (public_ip_res, network_interfaces_res) =
+        tokio::join!(get_public_ip(), get_net_interfaces());
 
     match public_ip_res {
         Ok(public_ip) => display_public_ip(public_ip),
-        Err(err) => error!("{}", err),
+        Err(err) => log::error!("{}", err),
     }
 
     match network_interfaces_res {
         Ok(net_interfaces) => display_network_interfaces(net_interfaces),
-        Err(err) => error!("{}", err),
+        Err(err) => log::error!("{}", err),
     }
 }
 

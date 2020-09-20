@@ -31,9 +31,6 @@ dclean: ## Remove everything associated with the defined dockerfile. Usage: make
 dinit: ## Initialize project, VSCode setup done by VSCode
 	@make dbuild-image variant=base
 
-dcreate-context:  ## TODO
-	@docker context create ws --docker "host=ssh://nmio@85.253.142.91"
-
 # Source: https://marmelab.com/blog/2016/02/29/auto-documented-makefile.html
 help: ## Show this help message
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
