@@ -7,7 +7,7 @@ use lazy_static::lazy_static;
 use regex::{Captures, Match, Regex};
 use std::net::IpAddr;
 use std::process::{Command, Output};
-use toolbox_rustbase::CLIProgram;
+use idea_nursery_prelude::CLIProgram;
 
 // https://man7.org/linux/man-pages/man8/ifconfig.8.html
 pub struct IfConfig();

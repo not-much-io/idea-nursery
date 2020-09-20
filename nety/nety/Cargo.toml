@@ -9,7 +9,7 @@ edition = "2018"
 [dependencies]
 log = "0.4"
 regex = {version = "1.3", features = ["pattern"]}
-toolbox-rustbase = {path = "../../toolbox-rustbase"}
+idea-nursery-prelude = {path = "../../idea-nursery-prelude"}
 # TODO: create a prelude in rustbase?
 async-trait = "0.1"
 anyhow = "1.0"

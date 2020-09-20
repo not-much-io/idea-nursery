@@ -9,7 +9,7 @@ use std::collections::HashMap;
 use std::net::IpAddr;
 use std::process::{Command, Output};
 use tokio::spawn;
-use toolbox_rustbase::CLIProgram;
+use idea_nursery_prelude::CLIProgram;
 
 // https://man7.org/linux/man-pages/man8/ip.8.html
 pub struct Ip();

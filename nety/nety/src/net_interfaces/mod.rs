@@ -6,7 +6,7 @@ use async_trait::async_trait;
 use std::fmt::Debug;
 use std::net::IpAddr;
 use thiserror::Error;
-use toolbox_rustbase::CLIProgram;
+use idea_nursery_prelude::CLIProgram;
 
 #[async_trait]
 pub trait GetNetInterfaces: CLIProgram<GetNetInterfacesResult> + Sync {

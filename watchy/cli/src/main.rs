@@ -1,13 +1,8 @@
 use anyhow::Result;
 use clap::{App, Arg};
 use log::LevelFilter;
-use std::process::Command;
-use std::str::FromStr;
-use std::time::Duration;
+use std::{process::Command, str::FromStr, time::Duration};
 use watchy::Watcher;
-
-#[macro_use]
-extern crate log;
 
 #[tokio::main]
 async fn main() {
@@ -34,7 +29,7 @@ async fn main() {
             .takes_value(true))
         .arg(Arg::new(key_interval)
             .long(key_interval)
-            .about("The interval between executing the monitoring command")
+            .about("The interval between executing the monitoring command in milliseconds")
             .value_name("INTERVAL")
             .required(true)
             .takes_value(true))

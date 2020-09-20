@@ -1,6 +1,6 @@
 [workspace]
 members = [
-    "toolbox-rustbase",
+    "idea-nursery-prelude",
     
     "nety/nety",
     "nety/cli",
@@ -8,3 +8,6 @@ members = [
     "watchy/watchy",
     "watchy/cli"
 ]
+
+[dependancies]
+clap = "3.0.0-beta.2"

@@ -5,7 +5,7 @@ use async_trait::async_trait;
 use std::fmt::Debug;
 use std::net::IpAddr;
 use thiserror::Error;
-use toolbox_rustbase::CLIProgram;
+use idea_nursery_prelude::CLIProgram;
 
 // NOTE: In reality a device can have multiple public IPs.
 // 	Currently not implemented, would fail to parse.

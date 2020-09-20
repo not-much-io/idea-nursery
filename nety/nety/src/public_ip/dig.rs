@@ -3,7 +3,7 @@ use anyhow::Result;
 use async_trait::async_trait;
 use std::net::IpAddr;
 use std::process::{Command, Output};
-use toolbox_rustbase::CLIProgram;
+use idea_nursery_prelude::CLIProgram;
 
 // https://linux.die.net/man/1/dig
 pub struct Dig();
