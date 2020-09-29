@@ -8,3 +8,4 @@ edition = "2018"
 
 [dependencies]
 nursery-prelude = {path = "../../nursery-prelude"}
+nix = "0.18"

@@ -1,3 +1,4 @@
+pub mod getifaddrs;
 pub mod ifconfig;
 pub mod ip;
 
@@ -7,13 +8,12 @@ use std::net::IpAddr;
 use nursery_prelude::library_prelude::*;
 
 #[async_trait]
-pub trait GetNetInterfaces: CLIProgram<GetNetInterfacesResult> + Sync {
-    async fn get_net_interfaces(&self) -> GetNetInterfacesResult {
-        self.parse_output(self.call().await?).await
-    }
+pub trait GetNetInterfaces: Sync {
+    async fn get_net_interfaces(&self) -> GetNetInterfacesResult;
 }
 
-// TODO: Network interfaces with multiple v4 or v6 addresses will just give the first for now
+// TODO: Research the definiton of a network interface
+//       Essentially - is it best to represent a net interface as a name and a single address only?
 #[derive(Debug, Eq, PartialEq, Ord, PartialOrd, Clone)]
 pub struct NetInterface {
     pub name: String,
@@ -27,6 +27,14 @@ impl NetInterface {
             name: name.to_string(),
             ipv4: *ipv4,
             ipv6: *ipv6,
+        }
+    }
+
+    fn new_with_no_address(name: &str) -> Self {
+        NetInterface {
+            name: name.to_string(),
+            ipv4: None,
+            ipv6: None,
         }
     }
 

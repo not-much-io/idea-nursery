@@ -37,7 +37,7 @@ async fn main() {
 #[derive(Error, Debug)]
 pub enum NetyError {
     #[error("No tools for getting network interfaces installed")]
-    NoGetNetInterfacesToolInstalled,
+    NoGetNetInterfacesMethodSucceeded,
     #[error("No tools for getting the public ip installed")]
     NoGetPublicIPToolInstalled,
 }
@@ -60,11 +60,14 @@ async fn get_public_ip() -> GetPublicIPResult {
 }
 
 async fn get_net_interfaces() -> GetNetInterfacesResult {
-    if let Some(t) = GET_NET_INTERFACE_TOOLS.iter().find(|t| t.is_installed()) {
-        return t.get_net_interfaces().await;
+    for method in GET_NET_INTERFACE_TOOLS.iter() {
+        let res = method.get_net_interfaces().await;
+        if res.is_ok() {
+            return res;
+        }
     }
 
-    Err(NetyError::NoGetNetInterfacesToolInstalled.into())
+    Err(NetyError::NoGetNetInterfacesMethodSucceeded.into())
 }
 
 fn display_public_ip(ip: IpAddr) {

@@ -3,7 +3,7 @@ use std::net::IpAddr;
 use std::process::{Command, Output};
 
 use crate::net_interfaces::{
-    GetNetInterfaces, GetNetInterfacesError, GetNetInterfacesResult, NetInterface,
+    GetNetInterfacesError, GetNetInterfaces, GetNetInterfacesResult, NetInterface,
 };
 
 use nursery_prelude::library_prelude::*;
@@ -23,7 +23,12 @@ impl Default for Ip {
     }
 }
 
-impl GetNetInterfaces for Ip {}
+#[async_trait]
+impl GetNetInterfaces for Ip {
+    async fn get_net_interfaces(&self) -> GetNetInterfacesResult {
+        self.parse_output(self.call().await?).await
+    }
+}
 
 #[async_trait]
 impl CLIProgram<GetNetInterfacesResult> for Ip {

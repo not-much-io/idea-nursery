@@ -4,7 +4,7 @@ use std::process::{Command, Output};
 use nursery_prelude::library_prelude::*;
 
 use crate::net_interfaces::{
-    GetNetInterfaces, GetNetInterfacesError, GetNetInterfacesResult, NetInterface,
+    GetNetInterfacesError, GetNetInterfaces, GetNetInterfacesResult, NetInterface,
 };
 
 // https://man7.org/linux/man-pages/man8/ifconfig.8.html
@@ -23,7 +23,11 @@ impl Default for IfConfig {
 }
 
 #[async_trait]
-impl GetNetInterfaces for IfConfig {}
+impl GetNetInterfaces for IfConfig {
+    async fn get_net_interfaces(&self) -> GetNetInterfacesResult {
+        self.parse_output(self.call().await?).await
+    }
+}
 
 #[async_trait]
 impl CLIProgram<GetNetInterfacesResult> for IfConfig {
