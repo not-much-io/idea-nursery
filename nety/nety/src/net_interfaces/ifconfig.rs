@@ -4,7 +4,7 @@ use std::process::{Command, Output};
 use nursery_prelude::library_prelude::*;
 
 use crate::net_interfaces::{
-    GetNetInterfacesError, GetNetInterfaces, GetNetInterfacesResult, NetInterface,
+    GetNetInterfaces, GetNetInterfacesError, GetNetInterfacesResult, NetInterface,
 };
 
 // https://man7.org/linux/man-pages/man8/ifconfig.8.html

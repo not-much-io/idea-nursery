@@ -3,7 +3,7 @@ use std::net::IpAddr;
 use std::process::{Command, Output};
 
 use crate::net_interfaces::{
-    GetNetInterfacesError, GetNetInterfaces, GetNetInterfacesResult, NetInterface,
+    GetNetInterfaces, GetNetInterfacesError, GetNetInterfacesResult, NetInterface,
 };
 
 use nursery_prelude::library_prelude::*;
