@@ -4,6 +4,7 @@ use std::process::{Command, Output};
 
 use crate::net_interfaces::{
     GetNetInterfaces, GetNetInterfacesError, GetNetInterfacesResult, NetInterface,
+    SortNetworkInterfaces,
 };
 
 use nursery_prelude::library_prelude::*;
@@ -29,6 +30,8 @@ impl GetNetInterfaces for Ip {
         self.parse_output(self.call().await?).await
     }
 }
+
+impl SortNetworkInterfaces for Ip {}
 
 #[async_trait]
 impl CLIProgram<GetNetInterfacesResult> for Ip {
@@ -77,20 +80,21 @@ impl CLIProgram<GetNetInterfacesResult> for Ip {
 
             match net_interfaces.get_mut(&name) {
                 None => {
-                    let ni = NetInterface::new_with_single_ip(&name.as_str(), &ip_addr);
+                    let ni = NetInterface::new(&name.as_str(), vec![ip_addr]);
                     net_interfaces.insert(name, ni);
                 }
                 Some(ni) => {
-                    ni.set_ip(&ip_addr);
+                    ni.set_address(&ip_addr);
                 }
             }
         }
 
-        Ok(net_interfaces
-            .values()
-            .cloned()
-            .sorted_by(|a, b| Ord::cmp(&a.name, &b.name))
-            .collect::<Vec<NetInterface>>())
+        Ok(self.sort(
+            net_interfaces
+                .values()
+                .cloned()
+                .collect::<Vec<NetInterface>>(),
+        ))
     }
 }
 
@@ -177,38 +181,40 @@ mod tests {
         let expected = vec![
             (
                 "br-60984024090a",
-                Some("172.18.0.1".parse::<IpAddr>().unwrap()),
-                None,
+                vec!["172.18.0.1".parse::<IpAddr>().unwrap()],
             ),
             (
                 "docker0",
-                Some("172.17.0.1".parse::<IpAddr>().unwrap()),
-                Some("fe80::42:f3ff:fe8b:ca5c".parse::<IpAddr>().unwrap()),
+                vec![
+                    "172.17.0.1".parse::<IpAddr>().unwrap(),
+                    "fe80::42:f3ff:fe8b:ca5c".parse::<IpAddr>().unwrap(),
+                ],
             ),
             (
                 "enp34s0",
-                Some("192.168.0.11".parse::<IpAddr>().unwrap()),
-                Some("fe80::6954:9b0a:f51f:e14e".parse::<IpAddr>().unwrap()),
+                vec![
+                    "192.168.0.11".parse::<IpAddr>().unwrap(),
+                    "fe80::6954:9b0a:f51f:e14e".parse::<IpAddr>().unwrap(),
+                ],
             ),
             (
                 "lo",
-                Some("127.0.0.1".parse::<IpAddr>().unwrap()),
-                Some("::1".parse::<IpAddr>().unwrap()),
+                vec![
+                    "127.0.0.1".parse::<IpAddr>().unwrap(),
+                    "::1".parse::<IpAddr>().unwrap(),
+                ],
             ),
             (
                 "veth5e001f8",
-                None,
-                Some("fe80::1442:1ff:feb9:41b5".parse::<IpAddr>().unwrap()),
+                vec!["fe80::1442:1ff:feb9:41b5".parse::<IpAddr>().unwrap()],
             ),
         ];
 
-        for (i, (name, ip_v4, ip_v6)) in expected.iter().enumerate() {
+        for (i, (name, addresses)) in expected.iter().enumerate() {
             let net_interface = real.get(i).unwrap();
 
             assert_eq!(*name, net_interface.name);
-
-            assert_eq!(*ip_v4, net_interface.ipv4);
-            assert_eq!(*ip_v6, net_interface.ipv6);
+            assert_eq!(*addresses, net_interface.addresses);
         }
     }
 

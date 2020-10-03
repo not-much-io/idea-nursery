@@ -1,5 +1,3 @@
 # Nety
 
-Nety is a silly little program that tries various tools to read the machines network configuration - currently public ip and network interface basics.
-
-Nety doesn't care if the machine has ifconfig or ip installed for instance, same same regarding the results.
+Nety is a silly little program that tries it's bestest to give a simplified overview of a devices network configuration. :mechanical_arm:

@@ -1,6 +1,8 @@
 use nix::{ifaddrs, sys::socket::SockAddr};
 
-use crate::net_interfaces::{GetNetInterfaces, GetNetInterfacesResult, NetInterface};
+use crate::net_interfaces::{
+    GetNetInterfaces, GetNetInterfacesResult, NetInterface, NormalizeNetworkInterfaces,
+};
 
 use nursery_prelude::library_prelude::*;
 
@@ -19,39 +21,57 @@ impl Default for GetIfAddrs {
     }
 }
 
+impl NormalizeNetworkInterfaces for GetIfAddrs {}
+
 #[async_trait]
 impl GetNetInterfaces for GetIfAddrs {
     async fn get_net_interfaces(&self) -> GetNetInterfacesResult {
         let mut net_interfaces = vec![];
-        let iaddr_iter = ifaddrs::getifaddrs()?;
 
-        for iaddr in iaddr_iter {
-            let name = iaddr.interface_name;
-            let _ = match iaddr.address {
-                None => None,
-                Some(address) => match address {
-                    SockAddr::Inet(inet_addr) => Some(inet_addr.ip()),
-                    _ => None,
+        for iaddr in ifaddrs::getifaddrs()? {
+            let name = iaddr.interface_name.clone();
+            let addresses = match iaddr.address {
+                Some(sock_addr) => match sock_addr {
+                    SockAddr::Inet(inet_addr) => vec![inet_addr.ip().to_std()],
+                    _ => {
+                        log::info!(
+                            "Unhandled Socket Address {} with flags: {:?}",
+                            iaddr.interface_name,
+                            iaddr.flags,
+                        );
+                        vec![]
+                    }
                 },
+                None => vec![],
             };
 
-            let net_interface = NetInterface::new_with_no_address(&name);
-            net_interfaces.push(net_interface);
+            let ni = NetInterface::new(&name, addresses);
+            net_interfaces.push(ni);
         }
 
-        Ok(net_interfaces)
+        Ok(self.normalize(net_interfaces))
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::collections::HashSet;
 
     #[tokio::test]
     async fn test_actual_call() {
-        let xs = GetIfAddrs::default().get_net_interfaces().await.unwrap();
-        for x in xs {
-            dbg!(x);
+        let mut names = HashSet::new();
+
+        let nis = GetIfAddrs::default().get_net_interfaces().await.unwrap();
+        for ni in nis {
+            assert_ne!(ni.name, "", "network interface has no name");
+            assert!(
+                !names.contains(&ni.name),
+                "duplicate network interface name: {}",
+                ni.name
+            );
+
+            names.insert(ni.name);
         }
     }
 }

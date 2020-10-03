@@ -45,9 +45,10 @@ impl CLIProgram<GetNetInterfacesResult> for IfConfig {
         let stdout = String::from_utf8(output.stdout)?;
         for c in RE.captures_iter(&stdout) {
             let interface_name = get_interface_name(&c)?;
-            let (ipv4, ipv6) = get_ip_addresses(&c)?;
-
-            net_interfaces.push(NetInterface::new(&interface_name.to_string(), &ipv4, &ipv6));
+            net_interfaces.push(NetInterface::new(
+                &interface_name.to_string(),
+                get_ip_addresses(&c)?,
+            ));
         }
 
         Ok(net_interfaces)
@@ -61,17 +62,24 @@ fn get_interface_name(c: &regex::Captures) -> Result<String> {
         .into())
 }
 
-fn get_ip_addresses(c: &regex::Captures) -> Result<(Option<IpAddr>, Option<IpAddr>)> {
-    let parse_ip_addr = |m: regex::Match| m.as_str().parse::<IpAddr>().ok()?.into();
+fn get_ip_addresses(c: &regex::Captures) -> Result<Vec<IpAddr>> {
+    let parse_ip_addr = |m: regex::Match| m.as_str().parse::<IpAddr>().ok();
 
-    match (c.name(REGEX_GROUP_IPV4), c.name(REGEX_GROUP_IPV6)) {
-        (None, None) => Err(GetNetInterfacesError::NoAddrForInterfaceFound().into()),
-        (Some(ipv4_match), None) => Ok((parse_ip_addr(ipv4_match), None)),
-        (None, Some(ipv6_match)) => Ok((None, parse_ip_addr(ipv6_match))),
-        (Some(ipv4_match), Some(ipv6_match)) => {
-            Ok((parse_ip_addr(ipv4_match), parse_ip_addr(ipv6_match)))
+    let mut res: Vec<IpAddr> = vec![];
+
+    if let Some(m) = c.name(REGEX_GROUP_IPV4) {
+        if let Some(addr) = parse_ip_addr(m) {
+            res.push(addr);
         }
     }
+
+    if let Some(m) = c.name(REGEX_GROUP_IPV6) {
+        if let Some(addr) = parse_ip_addr(m) {
+            res.push(addr);
+        }
+    }
+
+    Ok(res)
 }
 
 const REGEX_GROUP_NAME: &str = "interface_name";
@@ -148,38 +156,40 @@ veth60de6b9: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
         let expected = vec![
             (
                 "br-b83013461f0c",
-                Some("172.23.0.1".parse::<IpAddr>().unwrap()),
-                None,
+                vec!["172.23.0.1".parse::<IpAddr>().unwrap()],
             ),
             (
                 "docker0",
-                Some("172.17.0.1".parse::<IpAddr>().unwrap()),
-                Some("fe80::42:79ff:fe2b:f5c3".parse::<IpAddr>().unwrap()),
+                vec![
+                    "172.17.0.1".parse::<IpAddr>().unwrap(),
+                    "fe80::42:79ff:fe2b:f5c3".parse::<IpAddr>().unwrap(),
+                ],
             ),
             (
                 "enp34s0",
-                Some("192.168.0.11".parse::<IpAddr>().unwrap()),
-                Some("fe80::6954:9b0a:f51f:e14e".parse::<IpAddr>().unwrap()),
+                vec![
+                    "192.168.0.11".parse::<IpAddr>().unwrap(),
+                    "fe80::6954:9b0a:f51f:e14e".parse::<IpAddr>().unwrap(),
+                ],
             ),
             (
                 "lo",
-                Some("127.0.0.1".parse::<IpAddr>().unwrap()),
-                Some("::1".parse::<IpAddr>().unwrap()),
+                vec![
+                    "127.0.0.1".parse::<IpAddr>().unwrap(),
+                    "::1".parse::<IpAddr>().unwrap(),
+                ],
             ),
             (
                 "veth60de6b9",
-                None,
-                Some("fe80::d833:3eff:fe68:3a08".parse::<IpAddr>().unwrap()),
+                vec!["fe80::d833:3eff:fe68:3a08".parse::<IpAddr>().unwrap()],
             ),
         ];
 
-        for (i, (name, ip_v4, ip_v6)) in expected.iter().enumerate() {
+        for (i, (name, addresses)) in expected.iter().enumerate() {
             let net_interface = real.get(i).unwrap();
 
             assert_eq!(*name, net_interface.name);
-
-            assert_eq!(*ip_v4, net_interface.ipv4);
-            assert_eq!(*ip_v6, net_interface.ipv6);
+            assert_eq!(*addresses, net_interface.addresses);
         }
     }
 

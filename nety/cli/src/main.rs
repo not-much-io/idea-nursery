@@ -2,8 +2,7 @@ use std::net::IpAddr;
 
 use nursery_prelude::application_prelude::*;
 
-use nety::net_interfaces::ifconfig::IfConfig;
-use nety::net_interfaces::ip::Ip;
+use nety::net_interfaces::{getifaddrs::GetIfAddrs, ifconfig::IfConfig, ip::Ip};
 use nety::net_interfaces::{GetNetInterfaces, GetNetInterfacesResult, NetInterface};
 use nety::public_ip::dig::Dig;
 use nety::public_ip::{GetPublicIP, GetPublicIPResult};
@@ -44,11 +43,17 @@ pub enum NetyError {
 
 lazy_static! {
     // Public ip tools in priority order
-    static ref GET_PUBLIC_IP_TOOLS: [Box<dyn GetPublicIP>; 1] = [Box::new(Dig::default())];
+    static ref GET_PUBLIC_IP_TOOLS: [Box<dyn GetPublicIP>; 1] = [
+        Box::new(Dig::default()),
+    ];
 
     // Network interface tools in priority order
-    static ref GET_NET_INTERFACE_TOOLS: [Box<dyn GetNetInterfaces>; 2] =
-        [Box::new(Ip::default()), Box::new(IfConfig::default())];
+    static ref GET_NET_INTERFACE_TOOLS: [Box<dyn GetNetInterfaces>; 3] =
+        [
+            Box::new(GetIfAddrs::default()), // libc based implementation
+            Box::new(Ip::default()),         // Defacto linux networking utility (modern)
+            Box::new(IfConfig::default()),   // Defacto linux networking utility (deprecated)
+        ];
 }
 
 async fn get_public_ip() -> GetPublicIPResult {
@@ -78,15 +83,9 @@ fn display_network_interfaces(net_interfaces: Vec<NetInterface>) {
     println!("Network Interfaces:");
     for ni in net_interfaces {
         println!("  Name: {}", ni.name);
-
-        if let Some(ipv4) = ni.ipv4 {
-            println!("  ipv4: {}", ipv4)
+        for address in ni.addresses {
+            println!("    address: {:?}", address);
         }
-
-        if let Some(ipv6) = ni.ipv6 {
-            println!("  ipv6: {}", ipv6)
-        }
-
         println!();
     }
 }

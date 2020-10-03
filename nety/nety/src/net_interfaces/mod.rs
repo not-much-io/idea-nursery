@@ -2,6 +2,7 @@ pub mod getifaddrs;
 pub mod ifconfig;
 pub mod ip;
 
+use std::collections::HashMap;
 use std::fmt::Debug;
 use std::net::IpAddr;
 
@@ -12,56 +13,48 @@ pub trait GetNetInterfaces: Sync {
     async fn get_net_interfaces(&self) -> GetNetInterfacesResult;
 }
 
-// TODO: Research the definiton of a network interface
-//       Essentially - is it best to represent a net interface as a name and a single address only?
 #[derive(Debug, Eq, PartialEq, Ord, PartialOrd, Clone)]
 pub struct NetInterface {
-    pub name: String,
-    pub ipv4: Option<IpAddr>,
-    pub ipv6: Option<IpAddr>,
+    pub name:      String,
+    pub addresses: Vec<IpAddr>,
 }
 
 impl NetInterface {
-    fn new(name: &str, ipv4: &Option<IpAddr>, ipv6: &Option<IpAddr>) -> Self {
+    fn new(name: &str, addresses: Vec<IpAddr>) -> Self {
         NetInterface {
             name: name.to_string(),
-            ipv4: *ipv4,
-            ipv6: *ipv6,
+            addresses,
         }
     }
 
-    fn new_with_no_address(name: &str) -> Self {
-        NetInterface {
-            name: name.to_string(),
-            ipv4: None,
-            ipv6: None,
-        }
+    fn set_address(&mut self, address: &IpAddr) {
+        self.addresses.push(*address);
     }
+}
 
-    fn new_with_single_ip(name: &str, ip: &IpAddr) -> Self {
-        match ip {
-            IpAddr::V4(_) => NetInterface {
-                name: name.to_string(),
-                ipv4: Some(*ip),
-                ipv6: None,
-            },
-            IpAddr::V6(_) => NetInterface {
-                name: name.to_string(),
-                ipv4: None,
-                ipv6: Some(*ip),
-            },
-        }
-    }
+trait NormalizeNetworkInterfaces {
+    fn normalize(&self, net_interfaces: Vec<NetInterface>) -> Vec<NetInterface> {
+        let mut name_to_ni: HashMap<String, NetInterface> = HashMap::new();
 
-    fn set_ip(&mut self, ip: &IpAddr) {
-        match ip {
-            IpAddr::V4(_) => {
-                self.ipv4 = Some(*ip);
-            }
-            IpAddr::V6(_) => {
-                self.ipv6 = Some(*ip);
+        for mut ni in net_interfaces {
+            match name_to_ni.get_mut(&ni.name) {
+                Some(entry) => {
+                    entry.addresses.append(&mut ni.addresses);
+                }
+                None => {
+                    name_to_ni.insert(ni.name.to_string(), ni);
+                }
             }
         }
+
+        name_to_ni.values().cloned().collect()
+    }
+}
+
+trait SortNetworkInterfaces {
+    fn sort(&self, mut net_interfaces: Vec<NetInterface>) -> Vec<NetInterface> {
+        net_interfaces.sort_by(|a, b| Ord::cmp(&a.name, &b.name));
+        net_interfaces
     }
 }
 
