@@ -1,9 +1,8 @@
-use std::collections::HashMap;
 use std::net::IpAddr;
 use std::process::{Command, Output};
 
 use crate::net_interfaces::{
-    GetNetInterfaces, GetNetInterfacesError, GetNetInterfacesResult, NetInterface,
+    GetNetInterfaces, GetNetInterfacesResult, NetInterface, NormalizeNetworkInterfaces,
     SortNetworkInterfaces,
 };
 
@@ -33,6 +32,8 @@ impl GetNetInterfaces for Ip {
 
 impl SortNetworkInterfaces for Ip {}
 
+impl NormalizeNetworkInterfaces for Ip {}
+
 #[async_trait]
 impl CLIProgram<GetNetInterfacesResult> for Ip {
     fn name(&self) -> &str {
@@ -61,46 +62,32 @@ impl CLIProgram<GetNetInterfacesResult> for Ip {
             }
         }
 
-        let name_address_pairs = futures::future::join_all(parsing_handles)
+        let net_interfaces = futures::future::join_all(parsing_handles)
             .await
             .into_iter()
-            .collect::<Result<Vec<(Vec<u8>, Vec<u8>)>, _>>()?;
-
-        let mut net_interfaces: HashMap<String, NetInterface> = HashMap::new();
-        for (name_bs, ip_bs) in name_address_pairs {
-            if name_bs.is_empty() {
-                return Err(GetNetInterfacesError::NoNameForInterfaceFound().into());
-            }
-            if ip_bs.is_empty() {
-                return Err(GetNetInterfacesError::NoAddrForInterfaceFound().into());
-            }
-
-            let name = String::from_utf8(name_bs)?;
-            let ip_addr = String::from_utf8(ip_bs)?.parse::<IpAddr>()?;
-
-            match net_interfaces.get_mut(&name) {
-                None => {
-                    let ni = NetInterface::new(&name.as_str(), vec![ip_addr]);
-                    net_interfaces.insert(name, ni);
+            .collect::<Result<Vec<Result<NetInterface>>, _>>()?
+            .into_iter()
+            .filter_map(|parse_result| match parse_result {
+                Ok(ni) => Some(ni),
+                Err(err) => {
+                    log::info!("Paring network interface failed with error: {}", err);
+                    None
                 }
-                Some(ni) => {
-                    ni.set_address(&ip_addr);
-                }
-            }
-        }
+            })
+            .collect::<Vec<NetInterface>>();
 
-        Ok(self.sort(
-            net_interfaces
-                .values()
-                .cloned()
-                .collect::<Vec<NetInterface>>(),
-        ))
+        Ok(self.sort(self.normalize(net_interfaces)))
     }
 }
 
-async fn parse_line(line: Vec<u8>) -> (Vec<u8>, Vec<u8>) {
+async fn parse_line(line: Vec<u8>) -> Result<NetInterface> {
     let mut line_iter = line.into_iter();
-    (parse_name(&mut line_iter), parse_ip(&mut line_iter))
+
+    let name = String::from_utf8(parse_name(&mut line_iter))?;
+    let address = String::from_utf8(parse_ip(&mut line_iter))?;
+    let addresses = vec![address.parse::<IpAddr>()?];
+
+    Ok(NetInterface::new(&name, addresses))
 }
 
 fn parse_name(line_iter: &mut dyn Iterator<Item = u8>) -> Vec<u8> {

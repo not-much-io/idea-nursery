@@ -26,10 +26,6 @@ impl NetInterface {
             addresses,
         }
     }
-
-    fn set_address(&mut self, address: &IpAddr) {
-        self.addresses.push(*address);
-    }
 }
 
 trait NormalizeNetworkInterfaces {

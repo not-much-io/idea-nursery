@@ -9,15 +9,31 @@ use nety::public_ip::{GetPublicIP, GetPublicIPResult};
 
 #[tokio::main]
 async fn main() {
-    env_logger::builder()
-        .filter_level(log::LevelFilter::Info)
-        .init();
-
-    let _matches = clap::App::new("nety")
+    let key_verbose_short = 'v';
+    let key_verbose = "verbose";
+    let matches = clap::App::new("nety")
         .version("0.1")
         .author("kristo.koert@gmail.com")
         .about("A tool for gathering networking related information")
+        .arg(
+            clap::Arg::new(key_verbose)
+                .short(key_verbose_short)
+                .long(key_verbose)
+                .about("Run in verbose more showing various debugging output")
+                .required(false)
+                .takes_value(false),
+        )
         .get_matches();
+
+    if matches.is_present(key_verbose) {
+        env_logger::builder()
+            .filter_level(log::LevelFilter::Info)
+            .init();
+    } else {
+        env_logger::builder()
+            .filter_level(log::LevelFilter::Error)
+            .init();
+    }
 
     let (public_ip_res, network_interfaces_res) =
         tokio::join!(get_public_ip(), get_net_interfaces());
@@ -51,7 +67,7 @@ lazy_static! {
     static ref GET_NET_INTERFACE_TOOLS: [Box<dyn GetNetInterfaces>; 3] =
         [
             Box::new(GetIfAddrs::default()), // libc based implementation
-            Box::new(Ip::default()),         // Defacto linux networking utility (modern)
+            Box::new(Ip::default()),         // Defacto linux networking utility
             Box::new(IfConfig::default()),   // Defacto linux networking utility (deprecated)
         ];
 }
@@ -83,8 +99,9 @@ fn display_network_interfaces(net_interfaces: Vec<NetInterface>) {
     println!("Network Interfaces:");
     for ni in net_interfaces {
         println!("  Name: {}", ni.name);
+        println!("  Addresses:");
         for address in ni.addresses {
-            println!("    address: {:?}", address);
+            println!("    {}", address.to_string());
         }
         println!();
     }
