@@ -58,8 +58,6 @@ trait SortNetworkInterfaces {
 pub enum GetNetInterfacesError {
     #[error("No name found for network interface.")]
     NoNameForInterfaceFound(),
-    #[error("No ip found for network interface.")]
-    NoAddrForInterfaceFound(),
 }
 
 pub type GetNetInterfacesResult = Result<Vec<NetInterface>>;

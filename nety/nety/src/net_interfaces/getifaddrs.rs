@@ -66,6 +66,7 @@ mod tests {
         let mut names = HashSet::new();
 
         let nis = GetIfAddrs::default().get_net_interfaces().await.unwrap();
+        assert!(!nis.is_empty(), "GetIfAddrs returned no network interfaces");
         for ni in nis {
             assert_ne!(ni.name, "", "network interface has no name");
             assert!(
