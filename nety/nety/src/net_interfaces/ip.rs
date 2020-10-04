@@ -1,10 +1,7 @@
 use std::net::IpAddr;
 use std::process::{Command, Output};
 
-use crate::net_interfaces::{
-    GetNetInterfaces, GetNetInterfacesResult, NetInterface, NormalizeNetworkInterfaces,
-    SortNetworkInterfaces,
-};
+use crate::net_interfaces::{helpers, GetNetInterfaces, GetNetInterfacesResult, NetInterface};
 
 use nursery_prelude::library_prelude::*;
 
@@ -29,10 +26,6 @@ impl GetNetInterfaces for Ip {
         self.parse_output(self.call().await?).await
     }
 }
-
-impl SortNetworkInterfaces for Ip {}
-
-impl NormalizeNetworkInterfaces for Ip {}
 
 #[async_trait]
 impl CLIProgram<GetNetInterfacesResult> for Ip {
@@ -76,7 +69,7 @@ impl CLIProgram<GetNetInterfacesResult> for Ip {
             })
             .collect::<Vec<NetInterface>>();
 
-        Ok(self.sort(self.normalize(net_interfaces)))
+        Ok(helpers::sort(helpers::normalize(net_interfaces)))
     }
 }
 

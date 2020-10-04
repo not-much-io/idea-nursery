@@ -1,9 +1,6 @@
 use nix::{ifaddrs, sys::socket::SockAddr};
 
-use crate::net_interfaces::{
-    GetNetInterfaces, GetNetInterfacesResult, NetInterface, NormalizeNetworkInterfaces,
-    SortNetworkInterfaces,
-};
+use crate::net_interfaces::{helpers, GetNetInterfaces, GetNetInterfacesResult, NetInterface};
 
 use nursery_prelude::library_prelude::*;
 
@@ -21,10 +18,6 @@ impl Default for GetIfAddrs {
         GetIfAddrs::new()
     }
 }
-
-impl NormalizeNetworkInterfaces for GetIfAddrs {}
-
-impl SortNetworkInterfaces for GetIfAddrs {}
 
 #[async_trait]
 impl GetNetInterfaces for GetIfAddrs {
@@ -52,7 +45,7 @@ impl GetNetInterfaces for GetIfAddrs {
             net_interfaces.push(ni);
         }
 
-        Ok(self.sort(self.normalize(net_interfaces)))
+        Ok(helpers::sort(helpers::normalize(net_interfaces)))
     }
 }
 

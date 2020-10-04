@@ -2,7 +2,6 @@ pub mod getifaddrs;
 pub mod ifconfig;
 pub mod ip;
 
-use std::collections::HashMap;
 use std::fmt::Debug;
 use std::net::IpAddr;
 
@@ -28,8 +27,19 @@ impl NetInterface {
     }
 }
 
-trait NormalizeNetworkInterfaces {
-    fn normalize(&self, net_interfaces: Vec<NetInterface>) -> Vec<NetInterface> {
+#[derive(Error, Debug)]
+pub enum GetNetInterfacesError {
+    #[error("No name found for network interface.")]
+    NoNameForInterfaceFound(),
+}
+
+pub type GetNetInterfacesResult = Result<Vec<NetInterface>>;
+
+mod helpers {
+    use super::NetInterface;
+    use std::collections::HashMap;
+
+    pub fn normalize(net_interfaces: Vec<NetInterface>) -> Vec<NetInterface> {
         let mut name_to_ni: HashMap<String, NetInterface> = HashMap::new();
 
         for mut ni in net_interfaces {
@@ -45,19 +55,9 @@ trait NormalizeNetworkInterfaces {
 
         name_to_ni.values().cloned().collect()
     }
-}
 
-trait SortNetworkInterfaces {
-    fn sort(&self, mut net_interfaces: Vec<NetInterface>) -> Vec<NetInterface> {
+    pub fn sort(mut net_interfaces: Vec<NetInterface>) -> Vec<NetInterface> {
         net_interfaces.sort_by(|a, b| Ord::cmp(&a.name, &b.name));
         net_interfaces
     }
 }
-
-#[derive(Error, Debug)]
-pub enum GetNetInterfacesError {
-    #[error("No name found for network interface.")]
-    NoNameForInterfaceFound(),
-}
-
-pub type GetNetInterfacesResult = Result<Vec<NetInterface>>;
