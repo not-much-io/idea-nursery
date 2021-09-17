@@ -1,4 +1,7 @@
 [workspace]
 members = [
-    "nursery-prelude",
+    "rdocker_model",
+    "rdocker",
+    "rdockerd",
+    "rdocker_integration_tests"
 ]

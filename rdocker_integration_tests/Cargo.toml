@@ -1,0 +1,17 @@
+[package]
+name = "rdockerd_integration_tests"
+version = "0.1.0"
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+rdocker = {path = "../rdocker"}
+rdockerd = {path = "../rdockerd"}
+rdocker_model = {path = "../rdocker_model"}
+
+anyhow = "1.0"
+futures = "0.3"
+tokio = {version = "1.10", features = ["full"]}
+thrussh-keys = "0.21"
+whoami = "1.1"

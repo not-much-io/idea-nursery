@@ -13,7 +13,7 @@ format-check: ## Check formatting of rust code
 lint: ## Lint rust code
 	@cargo clippy
 
-test: ## Rust rust tests
+test: ## Run rust tests
 	@cargo test
 
 ci: ## Run CI rust quality check process

@@ -1,18 +1,19 @@
 FROM rust:1
 
-# To check status of tools by nightly versions see: https://rust-lang.github.io/rustup-components-history/index.html
-ENV TOOLCHAIN_VERSION=nightly-2021-08-08
-
 # Project deps
 RUN apt-get update \
     && apt-get -y install pkg-config libssl-dev make \
     # Faster linker
     lld \
-    # Tools used by idea-nursery
-    net-tools dnsutils
+    # Tools used by rdocker
+    # Required for rust-bindgen to syscalls
+    llvm-dev libclang-dev clang
 
 # Use a much faster linker... if it works
 ENV RUSTFLAGS "-C link-arg=-fuse-ld=lld"
+
+# To check status of tools by nightly versions see: https://rust-lang.github.io/rustup-components-history/index.html
+ENV TOOLCHAIN_VERSION=1.54.0
 
 # Install nightly toolchain and components
 RUN rustup toolchain uninstall stable \

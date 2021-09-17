@@ -1,0 +1,26 @@
+[package]
+name = "rdocker"
+version = "0.1.0"
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+rdocker_model = {path = "../rdocker_model"}
+
+# Standard runtime tools
+anyhow = "1.0"
+thiserror = "1.0"
+log = "0.4"
+env_logger = "0.9"
+tokio = {version = "1.10", features = ["full"]}
+
+# Small utils
+whoami = "1.1"
+serde_json = "1.0"
+
+# Functionality core libraries
+# For all our ssh needs
+clap = "2.33.3"
+thrussh = "0.33"
+thrussh-keys = "0.21"
