@@ -1,0 +1,98 @@
+syntax = "proto3";
+package rdocker;
+
+service RDocker {
+    rpc Echo (EchoRequest) returns (EchoResponse);
+    rpc RegisterEnv (RegisterEnvRequest) returns (RegisterEnvResponse);
+    rpc ClearEnv (ClearEnvRequest) returns (ClearEnvResponse);
+    rpc SetupInMemoryFs (SetupInMemoryFsRequest) returns (SetupInMemoryFsResponse);
+    rpc SetupTransparentProxy(SetupTransparentProxyRequest) returns (SetupTransparentProxyResponse);
+}
+
+message EchoRequest {
+    string message = 1;
+}
+
+message EchoResponse {
+    string message = 1;
+}
+
+message EnvID {
+    string env_label = 1;
+}
+
+message EnvDescriptor {
+    EnvID env_id = 1;
+
+    string local_ip      = 2;
+    string local_user    = 3;
+    string local_path    = 4;
+
+    string remote_ip     = 5;
+    string remote_user   = 6;
+    string remote_path   = 7;
+
+    int32  fs_max_size   = 8;
+
+    enum Status {
+        Registered                = 0;
+        SettingUpInMemoryFs       = 1;
+        SettingUpTransparentProxy = 2;
+        SettingUpFsSync           = 3;
+        Ready                     = 4;
+        Error                     = 5;
+    }
+
+    Status status = 9;
+}
+
+message RegisterEnvRequest {
+    EnvDescriptor env_desc = 1;
+}
+
+message RegisterEnvResponse {
+    enum Status {
+        EnvWithIDExists = 0;
+        SSHTestFailed   = 1;
+    }
+
+    Status status = 1;
+}
+
+message ClearEnvRequest {
+    EnvID env_id = 1;
+}
+
+message ClearEnvResponse {
+    enum Result {
+        Success = 0;
+        Error   = 1;
+    }
+
+    Result results            = 2;
+    optional string error_msg = 3;
+}
+
+message SetupInMemoryFsRequest {
+    EnvID env_id = 1;
+}
+
+message SetupInMemoryFsResponse {
+    EnvID env_id = 1;
+    
+    enum Result {
+        Success           = 0;
+        PathAlreadyExists = 1;
+        NotEnoughMemory   = 2;
+    }
+
+    Result result = 2;
+}
+
+message SetupTransparentProxyRequest {
+    EnvID env_id = 1;
+}
+
+message SetupTransparentProxyResponse {
+    EnvID env_id = 1;
+}

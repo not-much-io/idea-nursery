@@ -22,5 +22,5 @@ serde_json = "1.0"
 # Functionality core libraries
 # For all our ssh needs
 clap = "2.33.3"
-thrussh = "0.33"
-thrussh-keys = "0.21"
+
+tonic = "0.5"

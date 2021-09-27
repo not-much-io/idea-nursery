@@ -10,5 +10,9 @@ serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 anyhow = "1.0"
 thiserror = "1.0"
-cryptovec = "0.6"
+tonic = "0.5"
+tonic-health = "0.4"
+prost = "0.8"
 
+[build-dependencies]
+tonic-build = "0.5"
