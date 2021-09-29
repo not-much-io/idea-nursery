@@ -2,10 +2,31 @@ syntax = "proto3";
 package rdocker;
 
 service RDocker {
-    rpc Echo (EchoRequest) returns (EchoResponse);
-    rpc RegisterEnv (RegisterEnvRequest) returns (RegisterEnvResponse);
-    rpc ClearEnv (ClearEnvRequest) returns (ClearEnvResponse);
-    rpc SetupInMemoryFs (SetupInMemoryFsRequest) returns (SetupInMemoryFsResponse);
+    // Just an example, to be removed
+    rpc Echo(EchoRequest) returns (EchoResponse);
+    
+    // Register a new environment in remote
+    // Safe operation that fails if any conflicts with existing envs
+    // Reuses processes that other envs have already set up
+    rpc RegisterEnv(RegisterEnvRequest) returns (RegisterEnvResponse);
+
+    // Get the current state of an env
+    rpc ReadEnv(ReadEnvRequest) returns (ReadEnvResponse);
+
+    // List all the envs in remote
+    rpc ListEnvs(ListEnvsRequest) returns (ListEnvsResponse);
+
+    // Unregister end and clear all setup done for it
+    // Safe operation that won't effect src on local
+    rpc UnregisterEnv(UnregisterEnvRequest) returns (UnregisterEnvResponse);
+
+    // Setup in-memory fs on the rdockerd host
+    rpc SetupInMemoryFs(SetupInMemoryFsRequest) returns (SetupInMemoryFsResponse);
+
+    // Setup two way fs sync between local project dir and remote in-memory fs
+    rpc SetupFsSync(SetupFsSyncRequest) returns (SetupFsSyncResponse);
+
+    // Setup transparent proxying from remote through local
     rpc SetupTransparentProxy(SetupTransparentProxyRequest) returns (SetupTransparentProxyResponse);
 }
 
@@ -17,22 +38,18 @@ message EchoResponse {
     string message = 1;
 }
 
-message EnvID {
-    string env_label = 1;
-}
-
 message EnvDescriptor {
-    EnvID env_id = 1;
+    string env_id = 1;
 
-    string local_ip      = 2;
-    string local_user    = 3;
-    string local_path    = 4;
+    string local_ip   = 2;
+    string local_user = 3;
+    string local_path = 4;
 
-    string remote_ip     = 5;
-    string remote_user   = 6;
-    string remote_path   = 7;
+    string remote_ip   = 5;
+    string remote_user = 6;
+    string remote_path = 7;
 
-    int32  fs_max_size   = 8;
+    int32  fs_max_size = 8;
 
     enum Status {
         Registered                = 0;
@@ -40,10 +57,16 @@ message EnvDescriptor {
         SettingUpTransparentProxy = 2;
         SettingUpFsSync           = 3;
         Ready                     = 4;
-        Error                     = 5;
+        Errored                   = 5;
+    }
+
+    enum Error {
+        // TODO: Enumerate
+        Unspecified = 0;
     }
 
     Status status = 9;
+    Error  error  = 10;
 }
 
 message RegisterEnvRequest {
@@ -51,48 +74,78 @@ message RegisterEnvRequest {
 }
 
 message RegisterEnvResponse {
-    enum Status {
+    string env_id = 1;
+
+    enum Error {
         EnvWithIDExists = 0;
         SSHTestFailed   = 1;
     }
 
-    Status status = 1;
+    Error error = 2;
 }
 
-message ClearEnvRequest {
-    EnvID env_id = 1;
+message ReadEnvRequest {
+    string env_id = 1;
 }
 
-message ClearEnvResponse {
-    enum Result {
-        Success = 0;
-        Error   = 1;
+message ReadEnvResponse {
+    EnvDescriptor env_desc = 1;
+}
+
+message ListEnvsRequest {}
+
+message ListEnvsResponse {
+    repeated EnvDescriptor env_descs = 1;
+}
+
+message UnregisterEnvRequest {
+    string env_id = 1;
+}
+
+message UnregisterEnvResponse {
+    enum Error {
+        // TODO: Enumerate
+        Unspecified = 0;
     }
 
-    Result results            = 2;
-    optional string error_msg = 3;
+    Error error = 1;
 }
 
 message SetupInMemoryFsRequest {
-    EnvID env_id = 1;
+    string env_id = 1;
 }
 
 message SetupInMemoryFsResponse {
-    EnvID env_id = 1;
+    enum Error {
+        // TODO: Enumerate
+        Unspecified = 0;
+    }
     
-    enum Result {
-        Success           = 0;
-        PathAlreadyExists = 1;
-        NotEnoughMemory   = 2;
+    Error error = 1;
+}
+
+message SetupFsSyncRequest {
+    string env_id = 1;
+}
+
+message SetupFsSyncResponse {
+    enum Error {
+        // TODO: Enumerate
+        Unspecified = 0;
     }
 
-    Result result = 2;
+    Error error = 1;
 }
 
 message SetupTransparentProxyRequest {
-    EnvID env_id = 1;
+    string env_id = 1;
 }
 
 message SetupTransparentProxyResponse {
-    EnvID env_id = 1;
+    enum Error {
+        // TODO: Enumerate
+        Unspecified = 0;
+    }
+
+    Error error = 1;
 }

@@ -20,7 +20,7 @@ mod tests {
                 .output()
                 .map_err(|err| anyhow!("Failed to pkill rdockerd: {}", err))?;
             // TODO: Be smarter about this
-            tokio::time::sleep(Duration::from_millis(100)).await;
+            tokio::time::sleep(Duration::from_millis(250)).await;
         }
 
         Command::new("cargo")
@@ -32,7 +32,7 @@ mod tests {
             .map_err(|err| anyhow!("Failed to start rdockerd: {}", err))?;
 
         // TODO: Be smarter about this
-        tokio::time::sleep(Duration::from_millis(100)).await;
+        tokio::time::sleep(Duration::from_millis(250)).await;
 
         Ok(())
     }
