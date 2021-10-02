@@ -1,33 +1,52 @@
 syntax = "proto3";
 package rdocker;
 
+// TODO: Currently just local network funcionality, using local ips, etc.
 service RDocker {
     // Just an example, to be removed
     rpc Echo(EchoRequest) returns (EchoResponse);
     
+    // ========== Setting Up ==========
+
     // Register a new environment in remote
     // Safe operation that fails if any conflicts with existing envs
     // Reuses processes that other envs have already set up
     rpc RegisterEnv(RegisterEnvRequest) returns (RegisterEnvResponse);
+
+    // Set up in-memory fs on the rdockerd host
+    rpc SetUpInMemoryFs(SetUpInMemoryFsRequest) returns (SetUpInMemoryFsResponse);
+
+    // Set up two way fs sync between local project dir and remote in-memory fs
+    rpc SetUpFsSync(SetUpFsSyncRequest) returns (SetUpFsSyncResponse);
+
+    // Set up transparent proxying from remote through local
+    rpc SetUpTransparentProxy(SetUpTransparentProxyRequest) returns (SetUpTransparentProxyResponse);
+
+    // ========== Tearing Down ==========
+
+    // Tear down transparent proxying from remote through local
+    // If other env exists that uses this process, it will NOT be cleaned up
+    rpc TearDownTransparentProxy(TearDownTransparentProxyRequest) returns (TearDownTransparentProxyResponse);
+
+    // Tear down fn sync between local project dir and remote in-memory fs
+    rpc TearDownFsSync (TearDownFsSyncRequest) returns (TearDownFsSyncResponse);
+
+    // Tear down fn sync between local project dir and remote in-memory fs
+    // Will error if fs sync still active on the fs
+    rpc TearDownInMemoryFs (TearDownInMemoryFsRequest) returns (TearDownInMemoryFsResponse);
+
+    // Unregister and existing environment in remote
+    // This cleanup will remove any mention of the enviornment having even been on the remote
+    // Will fail if proper tear down hasn't been executed before this
+    rpc UnregisterEnv(UnregisterEnvRequest) returns (UnregisterEnvResponse);
+
+    // ========== Reading State ==========
 
     // Get the current state of an env
     rpc ReadEnv(ReadEnvRequest) returns (ReadEnvResponse);
 
     // List all the envs in remote
     rpc ListEnvs(ListEnvsRequest) returns (ListEnvsResponse);
-
-    // Unregister end and clear all setup done for it
-    // Safe operation that won't effect src on local
-    rpc UnregisterEnv(UnregisterEnvRequest) returns (UnregisterEnvResponse);
-
-    // Setup in-memory fs on the rdockerd host
-    rpc SetupInMemoryFs(SetupInMemoryFsRequest) returns (SetupInMemoryFsResponse);
-
-    // Setup two way fs sync between local project dir and remote in-memory fs
-    rpc SetupFsSync(SetupFsSyncRequest) returns (SetupFsSyncResponse);
-
-    // Setup transparent proxying from remote through local
-    rpc SetupTransparentProxy(SetupTransparentProxyRequest) returns (SetupTransparentProxyResponse);
 }
 
 message EchoRequest {
@@ -49,40 +68,80 @@ message EnvDescriptor {
     string remote_user = 6;
     string remote_path = 7;
 
-    int32  fs_max_size = 8;
-
     enum Status {
-        Registered                = 0;
-        SettingUpInMemoryFs       = 1;
-        SettingUpTransparentProxy = 2;
-        SettingUpFsSync           = 3;
-        Ready                     = 4;
-        Errored                   = 5;
+        Unregistered              = 0;
+        Registered                = 2;
+        SettingUpInMemoryFs       = 3;
+        SettingUpTransparentProxy = 4;
+        SettingUpFsSync           = 5;
+        Ready                     = 6;
+        Errored                   = 7;
     }
 
     enum Error {
         // TODO: Enumerate
-        Unspecified = 0;
+        None        = 0;
+        Unspecified = 1;
     }
 
+    // TODO: Should really be part of this descriptor?
     Status status = 9;
     Error  error  = 10;
 }
+
+// ========== Setting Up ==========
 
 message RegisterEnvRequest {
     EnvDescriptor env_desc = 1;
 }
 
-message RegisterEnvResponse {
+message RegisterEnvResponse {}
+
+message SetUpInMemoryFsRequest {
     string env_id = 1;
-
-    enum Error {
-        EnvWithIDExists = 0;
-        SSHTestFailed   = 1;
-    }
-
-    Error error = 2;
 }
+
+message SetUpInMemoryFsResponse {}
+
+message SetUpFsSyncRequest {
+    string env_id = 1;
+}
+
+message SetUpFsSyncResponse {}
+
+message SetUpTransparentProxyRequest {
+    string env_id = 1;
+}
+
+message SetUpTransparentProxyResponse {}
+
+// ========== Tearing Down ==========
+
+message TearDownTransparentProxyRequest {
+    string env_id = 1;
+}
+
+message TearDownTransparentProxyResponse {}
+
+message TearDownFsSyncRequest {
+    string env_id = 1;
+}
+
+message TearDownFsSyncResponse {}
+
+message TearDownInMemoryFsRequest {
+    string env_id = 1;
+}
+
+message TearDownInMemoryFsResponse {}
+
+message UnregisterEnvRequest {
+    string env_id = 1;
+}
+
+message UnregisterEnvResponse {}
+
+// ========== Reading State ==========
 
 message ReadEnvRequest {
     string env_id = 1;
@@ -92,60 +151,10 @@ message ReadEnvResponse {
     EnvDescriptor env_desc = 1;
 }
 
-message ListEnvsRequest {}
+message ListEnvsRequest {
+    string remote_ip = 1;
+}
 
 message ListEnvsResponse {
     repeated EnvDescriptor env_descs = 1;
-}
-
-message UnregisterEnvRequest {
-    string env_id = 1;
-}
-
-message UnregisterEnvResponse {
-    enum Error {
-        // TODO: Enumerate
-        Unspecified = 0;
-    }
-
-    Error error = 1;
-}
-
-message SetupInMemoryFsRequest {
-    string env_id = 1;
-}
-
-message SetupInMemoryFsResponse {
-    enum Error {
-        // TODO: Enumerate
-        Unspecified = 0;
-    }
-    
-    Error error = 1;
-}
-
-message SetupFsSyncRequest {
-    string env_id = 1;
-}
-
-message SetupFsSyncResponse {
-    enum Error {
-        // TODO: Enumerate
-        Unspecified = 0;
-    }
-
-    Error error = 1;
-}
-
-message SetupTransparentProxyRequest {
-    string env_id = 1;
-}
-
-message SetupTransparentProxyResponse {
-    enum Error {
-        // TODO: Enumerate
-        Unspecified = 0;
-    }
-
-    Error error = 1;
 }

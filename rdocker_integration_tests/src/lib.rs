@@ -53,6 +53,7 @@ mod tests {
             .map_err(|err| anyhow!("Failed to once init tests: {}", err))
     }
 
+    #[ignore]
     #[tokio::test]
     pub async fn test_echo() -> Result<()> {
         once_init_tests().await?;

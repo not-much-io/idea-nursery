@@ -15,12 +15,7 @@ log = "0.4"
 env_logger = "0.9"
 tokio = {version = "1.10", features = ["full"]}
 
-# Small utils
 whoami = "1.1"
-serde_json = "1.0"
-
-# Functionality core libraries
-# For all our ssh needs
-clap = "2.33.3"
-
+serde = "1.0"
+structopt ="0.3"
 tonic = "0.5"

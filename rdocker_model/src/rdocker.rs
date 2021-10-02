@@ -11,66 +11,108 @@ pub struct EchoResponse {
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct EnvDescriptor {
     #[prost(string, tag = "1")]
-    pub env_id: ::prost::alloc::string::String,
+    pub env_id:      ::prost::alloc::string::String,
     #[prost(string, tag = "2")]
-    pub local_ip: ::prost::alloc::string::String,
+    pub local_ip:    ::prost::alloc::string::String,
     #[prost(string, tag = "3")]
-    pub local_user: ::prost::alloc::string::String,
+    pub local_user:  ::prost::alloc::string::String,
     #[prost(string, tag = "4")]
-    pub local_path: ::prost::alloc::string::String,
+    pub local_path:  ::prost::alloc::string::String,
     #[prost(string, tag = "5")]
-    pub remote_ip: ::prost::alloc::string::String,
+    pub remote_ip:   ::prost::alloc::string::String,
     #[prost(string, tag = "6")]
     pub remote_user: ::prost::alloc::string::String,
     #[prost(string, tag = "7")]
     pub remote_path: ::prost::alloc::string::String,
-    #[prost(int32, tag = "8")]
-    pub fs_max_size: i32,
+    /// TODO: Should really be part of this descriptor?
     #[prost(enumeration = "env_descriptor::Status", tag = "9")]
-    pub status: i32,
+    pub status:      i32,
     #[prost(enumeration = "env_descriptor::Error", tag = "10")]
-    pub error: i32,
+    pub error:       i32,
 }
 /// Nested message and enum types in `EnvDescriptor`.
 pub mod env_descriptor {
     #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
     #[repr(i32)]
     pub enum Status {
-        Registered = 0,
-        SettingUpInMemoryFs = 1,
-        SettingUpTransparentProxy = 2,
-        SettingUpFsSync = 3,
-        Ready = 4,
-        Errored = 5,
+        Unregistered = 0,
+        Registered = 2,
+        SettingUpInMemoryFs = 3,
+        SettingUpTransparentProxy = 4,
+        SettingUpFsSync = 5,
+        Ready = 6,
+        Errored = 7,
     }
     #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
     #[repr(i32)]
     pub enum Error {
         /// TODO: Enumerate
-        Unspecified = 0,
+        None = 0,
+        Unspecified = 1,
     }
 }
+// ========== Setting Up ==========
+
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct RegisterEnvRequest {
     #[prost(message, optional, tag = "1")]
     pub env_desc: ::core::option::Option<EnvDescriptor>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
-pub struct RegisterEnvResponse {
+pub struct RegisterEnvResponse {}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct SetUpInMemoryFsRequest {
     #[prost(string, tag = "1")]
     pub env_id: ::prost::alloc::string::String,
-    #[prost(enumeration = "register_env_response::Error", tag = "2")]
-    pub error: i32,
 }
-/// Nested message and enum types in `RegisterEnvResponse`.
-pub mod register_env_response {
-    #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-    #[repr(i32)]
-    pub enum Error {
-        EnvWithIdExists = 0,
-        SshTestFailed = 1,
-    }
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct SetUpInMemoryFsResponse {}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct SetUpFsSyncRequest {
+    #[prost(string, tag = "1")]
+    pub env_id: ::prost::alloc::string::String,
 }
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct SetUpFsSyncResponse {}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct SetUpTransparentProxyRequest {
+    #[prost(string, tag = "1")]
+    pub env_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct SetUpTransparentProxyResponse {}
+// ========== Tearing Down ==========
+
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct TearDownTransparentProxyRequest {
+    #[prost(string, tag = "1")]
+    pub env_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct TearDownTransparentProxyResponse {}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct TearDownFsSyncRequest {
+    #[prost(string, tag = "1")]
+    pub env_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct TearDownFsSyncResponse {}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct TearDownInMemoryFsRequest {
+    #[prost(string, tag = "1")]
+    pub env_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct TearDownInMemoryFsResponse {}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct UnregisterEnvRequest {
+    #[prost(string, tag = "1")]
+    pub env_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct UnregisterEnvResponse {}
+// ========== Reading State ==========
+
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ReadEnvRequest {
     #[prost(string, tag = "1")]
@@ -82,92 +124,20 @@ pub struct ReadEnvResponse {
     pub env_desc: ::core::option::Option<EnvDescriptor>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
-pub struct ListEnvsRequest {}
+pub struct ListEnvsRequest {
+    #[prost(string, tag = "1")]
+    pub remote_ip: ::prost::alloc::string::String,
+}
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ListEnvsResponse {
     #[prost(message, repeated, tag = "1")]
     pub env_descs: ::prost::alloc::vec::Vec<EnvDescriptor>,
 }
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct UnregisterEnvRequest {
-    #[prost(string, tag = "1")]
-    pub env_id: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct UnregisterEnvResponse {
-    #[prost(enumeration = "unregister_env_response::Error", tag = "1")]
-    pub error: i32,
-}
-/// Nested message and enum types in `UnregisterEnvResponse`.
-pub mod unregister_env_response {
-    #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-    #[repr(i32)]
-    pub enum Error {
-        /// TODO: Enumerate
-        Unspecified = 0,
-    }
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct SetupInMemoryFsRequest {
-    #[prost(string, tag = "1")]
-    pub env_id: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct SetupInMemoryFsResponse {
-    #[prost(enumeration = "setup_in_memory_fs_response::Error", tag = "1")]
-    pub error: i32,
-}
-/// Nested message and enum types in `SetupInMemoryFsResponse`.
-pub mod setup_in_memory_fs_response {
-    #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-    #[repr(i32)]
-    pub enum Error {
-        /// TODO: Enumerate
-        Unspecified = 0,
-    }
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct SetupFsSyncRequest {
-    #[prost(string, tag = "1")]
-    pub env_id: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct SetupFsSyncResponse {
-    #[prost(enumeration = "setup_fs_sync_response::Error", tag = "1")]
-    pub error: i32,
-}
-/// Nested message and enum types in `SetupFsSyncResponse`.
-pub mod setup_fs_sync_response {
-    #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-    #[repr(i32)]
-    pub enum Error {
-        /// TODO: Enumerate
-        Unspecified = 0,
-    }
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct SetupTransparentProxyRequest {
-    #[prost(string, tag = "1")]
-    pub env_id: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct SetupTransparentProxyResponse {
-    #[prost(enumeration = "setup_transparent_proxy_response::Error", tag = "1")]
-    pub error: i32,
-}
-/// Nested message and enum types in `SetupTransparentProxyResponse`.
-pub mod setup_transparent_proxy_response {
-    #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-    #[repr(i32)]
-    pub enum Error {
-        /// TODO: Enumerate
-        Unspecified = 0,
-    }
-}
 #[doc = r" Generated client implementations."]
 pub mod r_docker_client {
     #![allow(unused_variables, dead_code, missing_docs, clippy::let_unit_value)]
     use tonic::codegen::*;
+    #[doc = " TODO: Currently just local network funcionality, using local ips, etc."]
     #[derive(Debug, Clone)]
     pub struct RDockerClient<T> {
         inner: tonic::client::Grpc<T>,
@@ -268,6 +238,153 @@ pub mod r_docker_client {
                 .unary(request.into_request(), path, codec)
                 .await
         }
+        #[doc = " Set up in-memory fs on the rdockerd host"]
+        pub async fn set_up_in_memory_fs(
+            &mut self,
+            request: impl tonic::IntoRequest<super::SetUpInMemoryFsRequest>,
+        ) -> Result<tonic::Response<super::SetUpInMemoryFsResponse>, tonic::Status> {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::new(
+                        tonic::Code::Unknown,
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static("/rdocker.RDocker/SetUpInMemoryFs");
+            self.inner
+                .unary(request.into_request(), path, codec)
+                .await
+        }
+        #[doc = " Set up two way fs sync between local project dir and remote in-memory fs"]
+        pub async fn set_up_fs_sync(
+            &mut self,
+            request: impl tonic::IntoRequest<super::SetUpFsSyncRequest>,
+        ) -> Result<tonic::Response<super::SetUpFsSyncResponse>, tonic::Status> {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::new(
+                        tonic::Code::Unknown,
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static("/rdocker.RDocker/SetUpFsSync");
+            self.inner
+                .unary(request.into_request(), path, codec)
+                .await
+        }
+        #[doc = " Set up transparent proxying from remote through local"]
+        pub async fn set_up_transparent_proxy(
+            &mut self,
+            request: impl tonic::IntoRequest<super::SetUpTransparentProxyRequest>,
+        ) -> Result<tonic::Response<super::SetUpTransparentProxyResponse>, tonic::Status> {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::new(
+                        tonic::Code::Unknown,
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path =
+                http::uri::PathAndQuery::from_static("/rdocker.RDocker/SetUpTransparentProxy");
+            self.inner
+                .unary(request.into_request(), path, codec)
+                .await
+        }
+        #[doc = " Tear down transparent proxying from remote through local"]
+        #[doc = " If other env exists that uses this process, it will NOT be cleaned up"]
+        pub async fn tear_down_transparent_proxy(
+            &mut self,
+            request: impl tonic::IntoRequest<super::TearDownTransparentProxyRequest>,
+        ) -> Result<tonic::Response<super::TearDownTransparentProxyResponse>, tonic::Status>
+        {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::new(
+                        tonic::Code::Unknown,
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path =
+                http::uri::PathAndQuery::from_static("/rdocker.RDocker/TearDownTransparentProxy");
+            self.inner
+                .unary(request.into_request(), path, codec)
+                .await
+        }
+        #[doc = " Tear down fn sync between local project dir and remote in-memory fs"]
+        pub async fn tear_down_fs_sync(
+            &mut self,
+            request: impl tonic::IntoRequest<super::TearDownFsSyncRequest>,
+        ) -> Result<tonic::Response<super::TearDownFsSyncResponse>, tonic::Status> {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::new(
+                        tonic::Code::Unknown,
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static("/rdocker.RDocker/TearDownFsSync");
+            self.inner
+                .unary(request.into_request(), path, codec)
+                .await
+        }
+        #[doc = " Tear down fn sync between local project dir and remote in-memory fs"]
+        #[doc = " Will error if fs sync still active on the fs"]
+        pub async fn tear_down_in_memory_fs(
+            &mut self,
+            request: impl tonic::IntoRequest<super::TearDownInMemoryFsRequest>,
+        ) -> Result<tonic::Response<super::TearDownInMemoryFsResponse>, tonic::Status> {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::new(
+                        tonic::Code::Unknown,
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static("/rdocker.RDocker/TearDownInMemoryFs");
+            self.inner
+                .unary(request.into_request(), path, codec)
+                .await
+        }
+        #[doc = " Unregister and existing environment in remote"]
+        #[doc = " This cleanup will remove any mention of the enviornment having even been on the remote"]
+        #[doc = " Will fail if proper tear down hasn't been executed before this"]
+        pub async fn unregister_env(
+            &mut self,
+            request: impl tonic::IntoRequest<super::UnregisterEnvRequest>,
+        ) -> Result<tonic::Response<super::UnregisterEnvResponse>, tonic::Status> {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::new(
+                        tonic::Code::Unknown,
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static("/rdocker.RDocker/UnregisterEnv");
+            self.inner
+                .unary(request.into_request(), path, codec)
+                .await
+        }
         #[doc = " Get the current state of an env"]
         pub async fn read_env(
             &mut self,
@@ -308,88 +425,6 @@ pub mod r_docker_client {
                 .unary(request.into_request(), path, codec)
                 .await
         }
-        #[doc = " Unregister end and clear all setup done for it"]
-        #[doc = " Safe operation that won't effect src on local"]
-        pub async fn unregister_env(
-            &mut self,
-            request: impl tonic::IntoRequest<super::UnregisterEnvRequest>,
-        ) -> Result<tonic::Response<super::UnregisterEnvResponse>, tonic::Status> {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::new(
-                        tonic::Code::Unknown,
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
-            let codec = tonic::codec::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static("/rdocker.RDocker/UnregisterEnv");
-            self.inner
-                .unary(request.into_request(), path, codec)
-                .await
-        }
-        #[doc = " Setup in-memory fs on the rdockerd host"]
-        pub async fn setup_in_memory_fs(
-            &mut self,
-            request: impl tonic::IntoRequest<super::SetupInMemoryFsRequest>,
-        ) -> Result<tonic::Response<super::SetupInMemoryFsResponse>, tonic::Status> {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::new(
-                        tonic::Code::Unknown,
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
-            let codec = tonic::codec::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static("/rdocker.RDocker/SetupInMemoryFs");
-            self.inner
-                .unary(request.into_request(), path, codec)
-                .await
-        }
-        #[doc = " Setup two way fs sync between local project dir and remote in-memory fs"]
-        pub async fn setup_fs_sync(
-            &mut self,
-            request: impl tonic::IntoRequest<super::SetupFsSyncRequest>,
-        ) -> Result<tonic::Response<super::SetupFsSyncResponse>, tonic::Status> {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::new(
-                        tonic::Code::Unknown,
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
-            let codec = tonic::codec::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static("/rdocker.RDocker/SetupFsSync");
-            self.inner
-                .unary(request.into_request(), path, codec)
-                .await
-        }
-        #[doc = " Setup transparent proxying from remote through local"]
-        pub async fn setup_transparent_proxy(
-            &mut self,
-            request: impl tonic::IntoRequest<super::SetupTransparentProxyRequest>,
-        ) -> Result<tonic::Response<super::SetupTransparentProxyResponse>, tonic::Status> {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::new(
-                        tonic::Code::Unknown,
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
-            let codec = tonic::codec::ProstCodec::default();
-            let path =
-                http::uri::PathAndQuery::from_static("/rdocker.RDocker/SetupTransparentProxy");
-            self.inner
-                .unary(request.into_request(), path, codec)
-                .await
-        }
     }
 }
 #[doc = r" Generated server implementations."]
@@ -411,6 +446,45 @@ pub mod r_docker_server {
             &self,
             request: tonic::Request<super::RegisterEnvRequest>,
         ) -> Result<tonic::Response<super::RegisterEnvResponse>, tonic::Status>;
+        #[doc = " Set up in-memory fs on the rdockerd host"]
+        async fn set_up_in_memory_fs(
+            &self,
+            request: tonic::Request<super::SetUpInMemoryFsRequest>,
+        ) -> Result<tonic::Response<super::SetUpInMemoryFsResponse>, tonic::Status>;
+        #[doc = " Set up two way fs sync between local project dir and remote in-memory fs"]
+        async fn set_up_fs_sync(
+            &self,
+            request: tonic::Request<super::SetUpFsSyncRequest>,
+        ) -> Result<tonic::Response<super::SetUpFsSyncResponse>, tonic::Status>;
+        #[doc = " Set up transparent proxying from remote through local"]
+        async fn set_up_transparent_proxy(
+            &self,
+            request: tonic::Request<super::SetUpTransparentProxyRequest>,
+        ) -> Result<tonic::Response<super::SetUpTransparentProxyResponse>, tonic::Status>;
+        #[doc = " Tear down transparent proxying from remote through local"]
+        #[doc = " If other env exists that uses this process, it will NOT be cleaned up"]
+        async fn tear_down_transparent_proxy(
+            &self,
+            request: tonic::Request<super::TearDownTransparentProxyRequest>,
+        ) -> Result<tonic::Response<super::TearDownTransparentProxyResponse>, tonic::Status>;
+        #[doc = " Tear down fn sync between local project dir and remote in-memory fs"]
+        async fn tear_down_fs_sync(
+            &self,
+            request: tonic::Request<super::TearDownFsSyncRequest>,
+        ) -> Result<tonic::Response<super::TearDownFsSyncResponse>, tonic::Status>;
+        #[doc = " Tear down fn sync between local project dir and remote in-memory fs"]
+        #[doc = " Will error if fs sync still active on the fs"]
+        async fn tear_down_in_memory_fs(
+            &self,
+            request: tonic::Request<super::TearDownInMemoryFsRequest>,
+        ) -> Result<tonic::Response<super::TearDownInMemoryFsResponse>, tonic::Status>;
+        #[doc = " Unregister and existing environment in remote"]
+        #[doc = " This cleanup will remove any mention of the enviornment having even been on the remote"]
+        #[doc = " Will fail if proper tear down hasn't been executed before this"]
+        async fn unregister_env(
+            &self,
+            request: tonic::Request<super::UnregisterEnvRequest>,
+        ) -> Result<tonic::Response<super::UnregisterEnvResponse>, tonic::Status>;
         #[doc = " Get the current state of an env"]
         async fn read_env(
             &self,
@@ -421,33 +495,13 @@ pub mod r_docker_server {
             &self,
             request: tonic::Request<super::ListEnvsRequest>,
         ) -> Result<tonic::Response<super::ListEnvsResponse>, tonic::Status>;
-        #[doc = " Unregister end and clear all setup done for it"]
-        #[doc = " Safe operation that won't effect src on local"]
-        async fn unregister_env(
-            &self,
-            request: tonic::Request<super::UnregisterEnvRequest>,
-        ) -> Result<tonic::Response<super::UnregisterEnvResponse>, tonic::Status>;
-        #[doc = " Setup in-memory fs on the rdockerd host"]
-        async fn setup_in_memory_fs(
-            &self,
-            request: tonic::Request<super::SetupInMemoryFsRequest>,
-        ) -> Result<tonic::Response<super::SetupInMemoryFsResponse>, tonic::Status>;
-        #[doc = " Setup two way fs sync between local project dir and remote in-memory fs"]
-        async fn setup_fs_sync(
-            &self,
-            request: tonic::Request<super::SetupFsSyncRequest>,
-        ) -> Result<tonic::Response<super::SetupFsSyncResponse>, tonic::Status>;
-        #[doc = " Setup transparent proxying from remote through local"]
-        async fn setup_transparent_proxy(
-            &self,
-            request: tonic::Request<super::SetupTransparentProxyRequest>,
-        ) -> Result<tonic::Response<super::SetupTransparentProxyResponse>, tonic::Status>;
     }
+    #[doc = " TODO: Currently just local network funcionality, using local ips, etc."]
     #[derive(Debug)]
     pub struct RDockerServer<T: RDocker> {
-        inner: _Inner<T>,
+        inner:                        _Inner<T>,
         accept_compression_encodings: (),
-        send_compression_encodings: (),
+        send_compression_encodings:   (),
     }
     struct _Inner<T>(Arc<T>);
     impl<T: RDocker> RDockerServer<T> {
@@ -548,6 +602,263 @@ pub mod r_docker_server {
                     };
                     Box::pin(fut)
                 }
+                "/rdocker.RDocker/SetUpInMemoryFs" => {
+                    #[allow(non_camel_case_types)]
+                    struct SetUpInMemoryFsSvc<T: RDocker>(pub Arc<T>);
+                    impl<T: RDocker> tonic::server::UnaryService<super::SetUpInMemoryFsRequest>
+                        for SetUpInMemoryFsSvc<T>
+                    {
+                        type Response = super::SetUpInMemoryFsResponse;
+                        type Future = BoxFuture<tonic::Response<Self::Response>, tonic::Status>;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::SetUpInMemoryFsRequest>,
+                        ) -> Self::Future {
+                            let inner = self.0.clone();
+                            let fut = async move {
+                                (*inner)
+                                    .set_up_in_memory_fs(request)
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let inner = inner.0;
+                        let method = SetUpInMemoryFsSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec).apply_compression_config(
+                            accept_compression_encodings,
+                            send_compression_encodings,
+                        );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/rdocker.RDocker/SetUpFsSync" => {
+                    #[allow(non_camel_case_types)]
+                    struct SetUpFsSyncSvc<T: RDocker>(pub Arc<T>);
+                    impl<T: RDocker> tonic::server::UnaryService<super::SetUpFsSyncRequest> for SetUpFsSyncSvc<T> {
+                        type Response = super::SetUpFsSyncResponse;
+                        type Future = BoxFuture<tonic::Response<Self::Response>, tonic::Status>;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::SetUpFsSyncRequest>,
+                        ) -> Self::Future {
+                            let inner = self.0.clone();
+                            let fut = async move {
+                                (*inner)
+                                    .set_up_fs_sync(request)
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let inner = inner.0;
+                        let method = SetUpFsSyncSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec).apply_compression_config(
+                            accept_compression_encodings,
+                            send_compression_encodings,
+                        );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/rdocker.RDocker/SetUpTransparentProxy" => {
+                    #[allow(non_camel_case_types)]
+                    struct SetUpTransparentProxySvc<T: RDocker>(pub Arc<T>);
+                    impl<T: RDocker>
+                        tonic::server::UnaryService<super::SetUpTransparentProxyRequest>
+                        for SetUpTransparentProxySvc<T>
+                    {
+                        type Response = super::SetUpTransparentProxyResponse;
+                        type Future = BoxFuture<tonic::Response<Self::Response>, tonic::Status>;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::SetUpTransparentProxyRequest>,
+                        ) -> Self::Future {
+                            let inner = self.0.clone();
+                            let fut = async move {
+                                (*inner)
+                                    .set_up_transparent_proxy(request)
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let inner = inner.0;
+                        let method = SetUpTransparentProxySvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec).apply_compression_config(
+                            accept_compression_encodings,
+                            send_compression_encodings,
+                        );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/rdocker.RDocker/TearDownTransparentProxy" => {
+                    #[allow(non_camel_case_types)]
+                    struct TearDownTransparentProxySvc<T: RDocker>(pub Arc<T>);
+                    impl<T: RDocker>
+                        tonic::server::UnaryService<super::TearDownTransparentProxyRequest>
+                        for TearDownTransparentProxySvc<T>
+                    {
+                        type Response = super::TearDownTransparentProxyResponse;
+                        type Future = BoxFuture<tonic::Response<Self::Response>, tonic::Status>;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::TearDownTransparentProxyRequest>,
+                        ) -> Self::Future {
+                            let inner = self.0.clone();
+                            let fut = async move {
+                                (*inner)
+                                    .tear_down_transparent_proxy(request)
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let inner = inner.0;
+                        let method = TearDownTransparentProxySvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec).apply_compression_config(
+                            accept_compression_encodings,
+                            send_compression_encodings,
+                        );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/rdocker.RDocker/TearDownFsSync" => {
+                    #[allow(non_camel_case_types)]
+                    struct TearDownFsSyncSvc<T: RDocker>(pub Arc<T>);
+                    impl<T: RDocker> tonic::server::UnaryService<super::TearDownFsSyncRequest>
+                        for TearDownFsSyncSvc<T>
+                    {
+                        type Response = super::TearDownFsSyncResponse;
+                        type Future = BoxFuture<tonic::Response<Self::Response>, tonic::Status>;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::TearDownFsSyncRequest>,
+                        ) -> Self::Future {
+                            let inner = self.0.clone();
+                            let fut = async move {
+                                (*inner)
+                                    .tear_down_fs_sync(request)
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let inner = inner.0;
+                        let method = TearDownFsSyncSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec).apply_compression_config(
+                            accept_compression_encodings,
+                            send_compression_encodings,
+                        );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/rdocker.RDocker/TearDownInMemoryFs" => {
+                    #[allow(non_camel_case_types)]
+                    struct TearDownInMemoryFsSvc<T: RDocker>(pub Arc<T>);
+                    impl<T: RDocker> tonic::server::UnaryService<super::TearDownInMemoryFsRequest>
+                        for TearDownInMemoryFsSvc<T>
+                    {
+                        type Response = super::TearDownInMemoryFsResponse;
+                        type Future = BoxFuture<tonic::Response<Self::Response>, tonic::Status>;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::TearDownInMemoryFsRequest>,
+                        ) -> Self::Future {
+                            let inner = self.0.clone();
+                            let fut = async move {
+                                (*inner)
+                                    .tear_down_in_memory_fs(request)
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let inner = inner.0;
+                        let method = TearDownInMemoryFsSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec).apply_compression_config(
+                            accept_compression_encodings,
+                            send_compression_encodings,
+                        );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/rdocker.RDocker/UnregisterEnv" => {
+                    #[allow(non_camel_case_types)]
+                    struct UnregisterEnvSvc<T: RDocker>(pub Arc<T>);
+                    impl<T: RDocker> tonic::server::UnaryService<super::UnregisterEnvRequest> for UnregisterEnvSvc<T> {
+                        type Response = super::UnregisterEnvResponse;
+                        type Future = BoxFuture<tonic::Response<Self::Response>, tonic::Status>;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::UnregisterEnvRequest>,
+                        ) -> Self::Future {
+                            let inner = self.0.clone();
+                            let fut = async move {
+                                (*inner)
+                                    .unregister_env(request)
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let inner = inner.0;
+                        let method = UnregisterEnvSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec).apply_compression_config(
+                            accept_compression_encodings,
+                            send_compression_encodings,
+                        );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
                 "/rdocker.RDocker/ReadEnv" => {
                     #[allow(non_camel_case_types)]
                     struct ReadEnvSvc<T: RDocker>(pub Arc<T>);
@@ -608,151 +919,6 @@ pub mod r_docker_server {
                     let fut = async move {
                         let inner = inner.0;
                         let method = ListEnvsSvc(inner);
-                        let codec = tonic::codec::ProstCodec::default();
-                        let mut grpc = tonic::server::Grpc::new(codec).apply_compression_config(
-                            accept_compression_encodings,
-                            send_compression_encodings,
-                        );
-                        let res = grpc.unary(method, req).await;
-                        Ok(res)
-                    };
-                    Box::pin(fut)
-                }
-                "/rdocker.RDocker/UnregisterEnv" => {
-                    #[allow(non_camel_case_types)]
-                    struct UnregisterEnvSvc<T: RDocker>(pub Arc<T>);
-                    impl<T: RDocker> tonic::server::UnaryService<super::UnregisterEnvRequest> for UnregisterEnvSvc<T> {
-                        type Response = super::UnregisterEnvResponse;
-                        type Future = BoxFuture<tonic::Response<Self::Response>, tonic::Status>;
-                        fn call(
-                            &mut self,
-                            request: tonic::Request<super::UnregisterEnvRequest>,
-                        ) -> Self::Future {
-                            let inner = self.0.clone();
-                            let fut = async move {
-                                (*inner)
-                                    .unregister_env(request)
-                                    .await
-                            };
-                            Box::pin(fut)
-                        }
-                    }
-                    let accept_compression_encodings = self.accept_compression_encodings;
-                    let send_compression_encodings = self.send_compression_encodings;
-                    let inner = self.inner.clone();
-                    let fut = async move {
-                        let inner = inner.0;
-                        let method = UnregisterEnvSvc(inner);
-                        let codec = tonic::codec::ProstCodec::default();
-                        let mut grpc = tonic::server::Grpc::new(codec).apply_compression_config(
-                            accept_compression_encodings,
-                            send_compression_encodings,
-                        );
-                        let res = grpc.unary(method, req).await;
-                        Ok(res)
-                    };
-                    Box::pin(fut)
-                }
-                "/rdocker.RDocker/SetupInMemoryFs" => {
-                    #[allow(non_camel_case_types)]
-                    struct SetupInMemoryFsSvc<T: RDocker>(pub Arc<T>);
-                    impl<T: RDocker> tonic::server::UnaryService<super::SetupInMemoryFsRequest>
-                        for SetupInMemoryFsSvc<T>
-                    {
-                        type Response = super::SetupInMemoryFsResponse;
-                        type Future = BoxFuture<tonic::Response<Self::Response>, tonic::Status>;
-                        fn call(
-                            &mut self,
-                            request: tonic::Request<super::SetupInMemoryFsRequest>,
-                        ) -> Self::Future {
-                            let inner = self.0.clone();
-                            let fut = async move {
-                                (*inner)
-                                    .setup_in_memory_fs(request)
-                                    .await
-                            };
-                            Box::pin(fut)
-                        }
-                    }
-                    let accept_compression_encodings = self.accept_compression_encodings;
-                    let send_compression_encodings = self.send_compression_encodings;
-                    let inner = self.inner.clone();
-                    let fut = async move {
-                        let inner = inner.0;
-                        let method = SetupInMemoryFsSvc(inner);
-                        let codec = tonic::codec::ProstCodec::default();
-                        let mut grpc = tonic::server::Grpc::new(codec).apply_compression_config(
-                            accept_compression_encodings,
-                            send_compression_encodings,
-                        );
-                        let res = grpc.unary(method, req).await;
-                        Ok(res)
-                    };
-                    Box::pin(fut)
-                }
-                "/rdocker.RDocker/SetupFsSync" => {
-                    #[allow(non_camel_case_types)]
-                    struct SetupFsSyncSvc<T: RDocker>(pub Arc<T>);
-                    impl<T: RDocker> tonic::server::UnaryService<super::SetupFsSyncRequest> for SetupFsSyncSvc<T> {
-                        type Response = super::SetupFsSyncResponse;
-                        type Future = BoxFuture<tonic::Response<Self::Response>, tonic::Status>;
-                        fn call(
-                            &mut self,
-                            request: tonic::Request<super::SetupFsSyncRequest>,
-                        ) -> Self::Future {
-                            let inner = self.0.clone();
-                            let fut = async move {
-                                (*inner)
-                                    .setup_fs_sync(request)
-                                    .await
-                            };
-                            Box::pin(fut)
-                        }
-                    }
-                    let accept_compression_encodings = self.accept_compression_encodings;
-                    let send_compression_encodings = self.send_compression_encodings;
-                    let inner = self.inner.clone();
-                    let fut = async move {
-                        let inner = inner.0;
-                        let method = SetupFsSyncSvc(inner);
-                        let codec = tonic::codec::ProstCodec::default();
-                        let mut grpc = tonic::server::Grpc::new(codec).apply_compression_config(
-                            accept_compression_encodings,
-                            send_compression_encodings,
-                        );
-                        let res = grpc.unary(method, req).await;
-                        Ok(res)
-                    };
-                    Box::pin(fut)
-                }
-                "/rdocker.RDocker/SetupTransparentProxy" => {
-                    #[allow(non_camel_case_types)]
-                    struct SetupTransparentProxySvc<T: RDocker>(pub Arc<T>);
-                    impl<T: RDocker>
-                        tonic::server::UnaryService<super::SetupTransparentProxyRequest>
-                        for SetupTransparentProxySvc<T>
-                    {
-                        type Response = super::SetupTransparentProxyResponse;
-                        type Future = BoxFuture<tonic::Response<Self::Response>, tonic::Status>;
-                        fn call(
-                            &mut self,
-                            request: tonic::Request<super::SetupTransparentProxyRequest>,
-                        ) -> Self::Future {
-                            let inner = self.0.clone();
-                            let fut = async move {
-                                (*inner)
-                                    .setup_transparent_proxy(request)
-                                    .await
-                            };
-                            Box::pin(fut)
-                        }
-                    }
-                    let accept_compression_encodings = self.accept_compression_encodings;
-                    let send_compression_encodings = self.send_compression_encodings;
-                    let inner = self.inner.clone();
-                    let fut = async move {
-                        let inner = inner.0;
-                        let method = SetupTransparentProxySvc(inner);
                         let codec = tonic::codec::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec).apply_compression_config(
                             accept_compression_encodings,

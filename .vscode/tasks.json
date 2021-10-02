@@ -2,19 +2,24 @@
 	"version": "2.0.0",
 	"tasks": [
 		{
-			"env": {
-				// "RUST_BACKTRACE": "1",
-			},
-			"type": "cargo",
-			"command": "test",
-			"args": [
-				"--release"
-			],
+			"type": "shell",
+			"command": "cargo test",
+			"args": [],
 			"problemMatcher": [
 				"$rustc"
 			],
 			"group": "test",
-			"label": "rust: cargo test release"
+			"label": "rust: dev-loop"
+		},
+		{
+			"type": "shell",
+			"command": "cargo run --bin rdocker -- generate-config --help",
+			"args": [],
+			"problemMatcher": [
+				"$rustc"
+			],
+			"group": "test",
+			"label": "rust: dev-loop (cli)"
 		}
 	]
 }

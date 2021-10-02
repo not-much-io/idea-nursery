@@ -29,11 +29,61 @@ impl RDocker for RDockerService {
             .env_desc
             .ok_or_else(|| Status::invalid_argument("Missing EnvDescriptor"))?;
 
-        self.env_registry
-            .lock()
-            .await
-            .insert(env_desc.env_id.clone(), env_desc);
+        let mut env_registry = self.env_registry.lock().await;
+        if env_registry.contains_key(&env_desc.env_id) {
+            return Err(Status::invalid_argument("Environment ID already is use"));
+        }
+        env_registry.insert(env_desc.env_id.clone(), env_desc.clone());
 
+        Ok(Response::new(RegisterEnvResponse::default()))
+    }
+
+    async fn set_up_in_memory_fs(
+        &self,
+        _request: Request<SetUpInMemoryFsRequest>,
+    ) -> Result<Response<SetUpInMemoryFsResponse>, Status> {
+        todo!()
+    }
+
+    async fn set_up_fs_sync(
+        &self,
+        _request: Request<SetUpFsSyncRequest>,
+    ) -> Result<Response<SetUpFsSyncResponse>, Status> {
+        todo!()
+    }
+
+    async fn set_up_transparent_proxy(
+        &self,
+        _request: Request<SetUpTransparentProxyRequest>,
+    ) -> Result<Response<SetUpTransparentProxyResponse>, Status> {
+        todo!()
+    }
+
+    async fn tear_down_transparent_proxy(
+        &self,
+        _request: Request<TearDownTransparentProxyRequest>,
+    ) -> Result<Response<TearDownTransparentProxyResponse>, Status> {
+        todo!()
+    }
+
+    async fn tear_down_fs_sync(
+        &self,
+        _request: Request<TearDownFsSyncRequest>,
+    ) -> Result<Response<TearDownFsSyncResponse>, Status> {
+        todo!()
+    }
+
+    async fn tear_down_in_memory_fs(
+        &self,
+        _request: Request<TearDownInMemoryFsRequest>,
+    ) -> Result<Response<TearDownInMemoryFsResponse>, Status> {
+        todo!()
+    }
+
+    async fn unregister_env(
+        &self,
+        _request: Request<UnregisterEnvRequest>,
+    ) -> Result<Response<UnregisterEnvResponse>, Status> {
         todo!()
     }
 
@@ -48,34 +98,6 @@ impl RDocker for RDockerService {
         &self,
         _request: Request<ListEnvsRequest>,
     ) -> Result<Response<ListEnvsResponse>, Status> {
-        todo!()
-    }
-
-    async fn unregister_env(
-        &self,
-        _request: Request<UnregisterEnvRequest>,
-    ) -> Result<Response<UnregisterEnvResponse>, Status> {
-        todo!()
-    }
-
-    async fn setup_in_memory_fs(
-        &self,
-        _request: Request<SetupInMemoryFsRequest>,
-    ) -> Result<Response<SetupInMemoryFsResponse>, Status> {
-        todo!()
-    }
-
-    async fn setup_fs_sync(
-        &self,
-        _request: tonic::Request<rdocker_model::rdocker::SetupFsSyncRequest>,
-    ) -> Result<tonic::Response<rdocker_model::rdocker::SetupFsSyncResponse>, tonic::Status> {
-        todo!()
-    }
-
-    async fn setup_transparent_proxy(
-        &self,
-        _request: Request<SetupTransparentProxyRequest>,
-    ) -> Result<Response<SetupTransparentProxyResponse>, Status> {
         todo!()
     }
 }
