@@ -23,7 +23,7 @@ impl CommandExt for Command {
         let output = self.output()?;
         if !output.status.success() {
             return Err(anyhow!(
-                "Command `{}` finished with non-zero status code: {}\n========== stderr ==========\n{}=========== stdout ===========\n{}",
+                "Command `{}` finished with non-zero status code: {}\n=========== stderr ===========\n{}=========== stdout ===========\n{}=========== envvars ===========\n{}",
                 self.display()?,
                 output
                     .status
@@ -31,6 +31,15 @@ impl CommandExt for Command {
                     .expect("somehow status code is undefined after checking status code..."),
                 String::from_utf8(output.stderr)?,
                 String::from_utf8(output.stdout)?,
+                self.get_envs()
+                    .into_iter()
+                    .map(|env_var| format!(
+                        "{}={}",
+                        OsStr::to_str(env_var.0).unwrap(),
+                        OsStr::to_str(env_var.1.unwrap()).unwrap()
+                    ))
+                    .collect::<Vec<String>>()
+                    .join("\n"),
             ));
         }
         Ok(output)

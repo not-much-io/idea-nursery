@@ -140,9 +140,7 @@ message ReadEnvResponse {
     EnvDescriptor env_desc = 1;
 }
 
-message ListEnvsRequest {
-    string remote_ip = 1;
-}
+message ListEnvsRequest {}
 
 message ListEnvsResponse {
     repeated EnvDescriptor env_descs = 1;

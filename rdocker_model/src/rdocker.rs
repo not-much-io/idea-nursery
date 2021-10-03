@@ -114,10 +114,7 @@ pub struct ReadEnvResponse {
     pub env_desc: ::core::option::Option<EnvDescriptor>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
-pub struct ListEnvsRequest {
-    #[prost(string, tag = "1")]
-    pub remote_ip: ::prost::alloc::string::String,
-}
+pub struct ListEnvsRequest {}
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ListEnvsResponse {
     #[prost(message, repeated, tag = "1")]

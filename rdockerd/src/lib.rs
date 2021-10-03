@@ -82,15 +82,39 @@ impl RDocker for RDockerService {
 
     async fn read_env(
         &self,
-        _request: Request<ReadEnvRequest>,
+        request: Request<ReadEnvRequest>,
     ) -> Result<Response<ReadEnvResponse>, Status> {
-        todo!()
+        let env_id = request.into_inner().env_id;
+        let env_registry = self.env_registry.lock().await;
+        let env_desc = env_registry.get(&env_id);
+
+        match env_desc {
+            Some(env_desc) => Ok(Response::new(ReadEnvResponse {
+                env_desc: Some(env_desc.to_owned()),
+            })),
+            None => Err(Status::not_found(format!(
+                "Environment ID '{}' not in registry, real values: '{}'",
+                env_id,
+                env_registry
+                    .keys()
+                    .cloned()
+                    .into_iter()
+                    .collect::<Vec<String>>()
+                    .join(", "),
+            ))),
+        }
     }
 
     async fn list_envs(
         &self,
         _request: Request<ListEnvsRequest>,
     ) -> Result<Response<ListEnvsResponse>, Status> {
-        todo!()
+        let env_registry = self.env_registry.lock().await;
+        let mut env_descs = vec![];
+        for env_desc in env_registry.values() {
+            env_descs.push(env_desc.clone());
+        }
+
+        Ok(Response::new(ListEnvsResponse { env_descs }))
     }
 }

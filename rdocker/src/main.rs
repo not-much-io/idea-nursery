@@ -25,6 +25,8 @@ async fn try_main(cli: lib::CLI) -> Result<()> {
         lib::CLI::GenConf(cli_input) => generate_config(cli_input).await?,
         lib::CLI::SetUpEnv { env_id } => set_up_env(&env_id).await?,
         lib::CLI::TearDownEnv { env_id } => todo!(),
+        lib::CLI::ReadEnv { env_id } => read_env(&env_id).await?,
+        lib::CLI::ListEnvs { env_id } => todo!(),
     }
     Ok(())
 }
@@ -39,7 +41,21 @@ async fn generate_config(cli_input: lib::GenConfCLI) -> Result<()> {
 async fn set_up_env(env_id: &str) -> Result<()> {
     let conf = lib::EnvConf::load_from_file(env_id).await?;
     let ctx = lib::Context::new(conf);
-    let client = lib::ClientWrapper::new(ctx);
+    lib::ClientWrapper::new(ctx)
+        .await?
+        .register_env()
+        .await?;
+
+    Ok(())
+}
+
+async fn read_env(env_id: &str) -> Result<()> {
+    let conf = lib::EnvConf::load_from_file(env_id).await?;
+    let ctx = lib::Context::new(conf);
+    lib::ClientWrapper::new(ctx)
+        .await?
+        .read_env()
+        .await?;
 
     Ok(())
 }

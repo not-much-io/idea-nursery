@@ -2,8 +2,10 @@ use std::{env, net::IpAddr, path::PathBuf};
 
 use anyhow::{anyhow, Result};
 use local_ip_address::local_ip;
+use log::info;
 use rdocker_model::rdocker::{
-    env_descriptor, r_docker_client::RDockerClient, EnvDescriptor, RegisterEnvRequest,
+    env_descriptor, r_docker_client::RDockerClient, EnvDescriptor, ReadEnvRequest,
+    RegisterEnvRequest,
 };
 use serde::{Deserialize, Serialize};
 use std::fs;
@@ -26,6 +28,16 @@ pub enum CLI {
 
     /// Tear down env, matching configuration file must exist
     TearDownEnv {
+        #[structopt(long)]
+        env_id: String,
+    },
+
+    ReadEnv {
+        #[structopt(long)]
+        env_id: String,
+    },
+
+    ListEnvs {
         #[structopt(long)]
         env_id: String,
     },
@@ -129,7 +141,7 @@ impl EnvConf {
     pub async fn load_from_file(env_id: &str) -> Result<Self> {
         let file = fs::File::open(Self::env_conf_file_name(env_id)).map_err(|err| {
             anyhow!(
-                "Failed to open configuration file for env '{}' (expected: {})",
+                "Failed to open configuration file for env '{}': '{}'",
                 env_id,
                 err,
             )
@@ -238,7 +250,6 @@ impl ClientWrapper {
     }
 
     pub async fn setup_env(&mut self) -> Result<()> {
-        self.register_env().await?;
         todo!()
     }
 
@@ -246,7 +257,7 @@ impl ClientWrapper {
         todo!()
     }
 
-    async fn register_env(&mut self) -> Result<()> {
+    pub async fn register_env(&mut self) -> Result<()> {
         let env_conf = self.ctx.conf.clone();
         let env_desc = EnvDescriptor {
             env_id: env_conf.env_id,
@@ -280,6 +291,29 @@ impl ClientWrapper {
                 env_desc: Some(env_desc),
             })
             .await?;
+
+        Ok(())
+    }
+
+    pub async fn read_env(&mut self) -> Result<()> {
+        let env_id = self
+            .ctx
+            .conf
+            .env_id
+            .to_string();
+        let resp = self
+            .inner
+            .read_env(ReadEnvRequest {
+                env_id: env_id.clone(),
+            })
+            .await?;
+
+        let env_desc = resp
+            .into_inner()
+            .env_desc
+            .unwrap();
+
+        info!("Environment Descriptor for '{}': {:?}", env_id, env_desc);
 
         Ok(())
     }

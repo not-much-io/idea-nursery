@@ -2,27 +2,24 @@
 mod tests {
     use anyhow::{anyhow, Result};
     use rdocker::EnvConf;
-    use rdocker_common::{Command, CommandExt};
-    use std::{fs, path::PathBuf, str::from_utf8, time::Duration};
+    use rdocker_common::{Command, CommandExt, Output};
+    use std::{fs, path::PathBuf, time::Duration};
     use tokio::sync::OnceCell;
 
     pub async fn start_rdockerd() -> Result<()> {
         // NOTE: Exit code 1 when nothing found
-        let pid = Command::new("pgrep")
+        let existing_rdockerd_pid = Command::new("pgrep")
             .arg("-x")
             .arg("rdockerd")
             .output_value()
             .map_err(|err| anyhow!("Failed to execute pgrep: '{}'", err))?;
 
-        if !pid.is_empty() {
+        if !existing_rdockerd_pid.is_empty() {
             Command::new("kill")
                 .arg("-9")
-                .arg(pid)
+                .arg(existing_rdockerd_pid)
                 .output()
                 .map_err(|err| anyhow!("Failed to execute kill: '{}'", err))?;
-
-            // TODO: Be smarter about this
-            tokio::time::sleep(Duration::from_millis(500)).await;
         }
 
         Command::new("cargo")
@@ -55,21 +52,27 @@ mod tests {
             .map_err(|err| anyhow!("Failed to once init tests: {}", err))
     }
 
-    #[tokio::test]
-    pub async fn test_generate_configuration() -> Result<()> {
-        once_init_tests().await?;
-
+    fn rdocker(subcommand: &str, env_id: &str) -> Result<String> {
         Command::new("cargo")
-            .env("DOCKER_HOST", "ssh://username@192.0.2.1")
+            .env("DOCKER_HOST", "ssh://vscode@127.0.0.1")
+            // .env("RUSTFLAGS", "-Awarnings") causes rebuilds...
             .current_dir("/workspaces/idea-nursery")
             .arg("run")
             .arg("--bin")
             .arg("rdocker")
             .arg("--")
-            .arg("gen-conf")
+            .arg(subcommand)
             .arg("--env-id")
-            .arg("test_env")
-            .output_strict()?;
+            .arg(env_id)
+            .output_strict_value()
+    }
+
+    #[tokio::test]
+    pub async fn test_e2e() -> Result<()> {
+        once_init_tests().await?;
+
+        // STEP1: Generate a configuation
+        rdocker("gen-conf", "test_env")?;
 
         let file = fs::File::open("../rd_env_conf.test_env.yaml").map_err(|err| {
             anyhow!(
@@ -81,13 +84,19 @@ mod tests {
         let conf: EnvConf = serde_yaml::from_reader(file)?;
 
         assert_eq!(conf.env_id, "test_env");
-
         assert_eq!(conf.local_user, "vscode");
         assert_eq!(conf.local_path, PathBuf::from("/workspaces/idea-nursery"));
-
-        assert_eq!(conf.remote_user, "username");
+        assert_eq!(conf.remote_user, "vscode");
         assert_eq!(conf.remote_path, PathBuf::from("/tmp/\"idea-nursery\""));
 
+        // STEP2: Register new env
+        // rdocker("set-up-env", "test-env")?;
+
+        // STEP3: Check if env actually registered
+        // let output = rdocker("read-env", "test_env")?;
+        // assert_eq!(output, "");
+
+        // Cleanup
         fs::remove_file("../rd_env_conf.test_env.yaml")?;
 
         Ok(())
