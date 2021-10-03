@@ -11,7 +11,7 @@ use structopt::StructOpt;
 use tokio::process::Command as ProcessCommand;
 use tonic::transport::Channel;
 
-/// TODO
+/// The main cli of rdocker
 #[derive(StructOpt)]
 #[structopt(name = "rdocker")]
 pub enum CLI {
@@ -20,20 +20,18 @@ pub enum CLI {
 
     /// Set up env, matching configuration file must exist
     SetUpEnv {
-        /// TODO
         #[structopt(long)]
         env_id: String,
     },
 
     /// Tear down env, matching configuration file must exist
     TearDownEnv {
-        /// TODO
         #[structopt(long)]
         env_id: String,
     },
 }
 
-/// Configuration of one environment
+/// The gen-conf subcommand cli of rdocker
 #[derive(StructOpt, Debug)]
 pub struct GenConfCLI {
     /// A unique identifier for an environment in remote
@@ -61,6 +59,7 @@ pub struct GenConfCLI {
     pub remote_path: Option<PathBuf>,
 }
 
+/// The configuration of one environment
 #[derive(Serialize, Deserialize, Clone)]
 pub struct EnvConf {
     pub env_id: String,
@@ -75,7 +74,7 @@ pub struct EnvConf {
 }
 
 impl EnvConf {
-    pub async fn new(cli: GenConfCLI) -> Result<Self> {
+    pub async fn generate(cli: GenConfCLI) -> Result<Self> {
         // Example: ssh://username@192.0.2.1
         let docker_host = env::var("DOCKER_HOST")
             .map_err(|err| anyhow!("Issue with DOCKER_HOST variable: {}", err))?;
@@ -135,6 +134,7 @@ impl EnvConf {
                 err,
             )
         })?;
+
         Ok(serde_yaml::from_reader(file)?)
     }
 
@@ -154,7 +154,6 @@ impl EnvConf {
         Ok(serde_yaml::to_writer(file, &self)?)
     }
 
-    // TODO: Implement something more robust and generic
     async fn default_local_ip() -> Result<IpAddr> {
         Ok(local_ip()?)
     }
@@ -174,16 +173,19 @@ impl EnvConf {
         Ok(env::current_dir()?)
     }
 
-    // TODO: Use a nice regex? Handle errors.
     fn default_remote_ip(docker_host: &str) -> Result<IpAddr> {
         Ok(docker_host
             .split('@')
             .last()
-            .expect("can't parse DOCKER_HOST variable for ip")
+            .ok_or_else(|| {
+                anyhow!(
+                    "Can't parse DOCKER_HOST variable for ip, unexpected structure: {}",
+                    docker_host
+                )
+            })?
             .parse()?)
     }
 
-    // TODO: Use a nice regex? Handle errors.
     fn default_remote_user(docker_host: &str) -> Result<String> {
         Ok(docker_host
             .split('@')
@@ -195,14 +197,13 @@ impl EnvConf {
             .parse()?)
     }
 
-    // TODO: Handle errors
     fn default_remote_path() -> Result<PathBuf> {
         // TODO: Clean out unrequired quotes
         Ok(PathBuf::from(format!(
             "/tmp/{:?}",
             env::current_dir()?
                 .file_name()
-                .expect("can't get current dir name")
+                .ok_or_else(|| anyhow!("Unable to get the current dir"))?
         )))
     }
 

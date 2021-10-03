@@ -58,6 +58,7 @@ mod tests {
     #[tokio::test]
     pub async fn test_generate_configuration() -> Result<()> {
         once_init_tests().await?;
+
         Command::new("cargo")
             .env("DOCKER_HOST", "ssh://username@192.0.2.1")
             .current_dir("/workspaces/idea-nursery")

@@ -2,7 +2,6 @@ mod lib;
 
 use anyhow::{anyhow, Result};
 use log::{error, LevelFilter};
-use std::fs::{File, OpenOptions};
 use structopt::StructOpt;
 
 #[tokio::main]
@@ -31,14 +30,14 @@ async fn try_main(cli: lib::CLI) -> Result<()> {
 }
 
 async fn generate_config(cli_input: lib::GenConfCLI) -> Result<()> {
-    let conf = lib::EnvConf::new(cli_input)
+    let conf = lib::EnvConf::generate(cli_input)
         .await
         .map_err(|err| anyhow!("Failed to construct environment configuration: '{}'", err))?;
     Ok(conf.save_to_file()?)
 }
 
 async fn set_up_env(env_id: &str) -> Result<()> {
-    let conf = lib::EnvConf::load_from_file(&env_id).await?;
+    let conf = lib::EnvConf::load_from_file(env_id).await?;
     let ctx = lib::Context::new(conf);
     let client = lib::ClientWrapper::new(ctx);
 
