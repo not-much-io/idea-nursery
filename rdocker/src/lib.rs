@@ -1,6 +1,7 @@
 use std::{env, net::IpAddr, path::PathBuf};
 
-use anyhow::Result;
+use anyhow::{anyhow, Result};
+use local_ip_address::local_ip;
 use rdocker_model::rdocker::{
     env_descriptor, r_docker_client::RDockerClient, EnvDescriptor, RegisterEnvRequest,
 };
@@ -14,7 +15,7 @@ use tonic::transport::Channel;
 #[structopt(name = "rdocker")]
 pub enum CLI {
     /// Generate a configuration file
-    GenerateConfig(EnvConfig),
+    GenConf(GenConfCLI),
 
     /// Set up env, matching configuration file must exist
     SetUpEnv {
@@ -32,8 +33,8 @@ pub enum CLI {
 }
 
 /// Configuration of one environment
-#[derive(StructOpt, Serialize, Deserialize, Debug)]
-pub struct EnvConfig {
+#[derive(StructOpt, Debug)]
+pub struct GenConfCLI {
     /// A unique identifier for an environment in remote
     #[structopt(long)]
     pub env_id: String,
@@ -59,10 +60,8 @@ pub struct EnvConfig {
     pub remote_path: Option<PathBuf>,
 }
 
-/// The context of one execution of rdocker
-/// Contains data and state that will be passed along one run of rdocker
-#[derive(Clone)]
-pub struct Context {
+#[derive(Serialize, Deserialize, Clone)]
+pub struct EnvConf {
     pub env_id: String,
 
     pub local_ip:   IpAddr,
@@ -74,38 +73,46 @@ pub struct Context {
     pub remote_path: PathBuf,
 }
 
-impl Context {
-    pub async fn new(conf: EnvConfig) -> Result<Self> {
+impl EnvConf {
+    pub async fn new(cli: GenConfCLI) -> Result<Self> {
         // Example: ssh://username@192.0.2.1
-        let docker_host = env::var("DOCKER_HOST")?;
-        // TODO: validate
+        let docker_host = env::var("DOCKER_HOST")
+            .map_err(|err| anyhow!("Issue with DOCKER_HOST variable: {}", err))?;
 
-        let env_id = conf.env_id;
+        let env_id = cli.env_id;
 
-        let local_ip = match conf.local_ip {
+        let local_ip = match cli.local_ip {
             Some(ip) => ip,
-            None => Self::default_local_ip().await?,
+            None => Self::default_local_ip()
+                .await
+                .map_err(|err| anyhow!("Failed to infer local_ip with error: {}", err))?,
         };
-        let local_user = match conf.local_user {
+        let local_user = match cli.local_user {
             Some(user) => user,
-            None => Self::default_local_user().await?,
+            None => Self::default_local_user()
+                .await
+                .map_err(|err| anyhow!("Failed to infer local_user with error: {}", err))?,
         };
-        let local_path = match conf.local_path {
+        let local_path = match cli.local_path {
             Some(path) => path,
-            None => Self::default_local_path()?,
+            None => Self::default_local_path()
+                .map_err(|err| anyhow!("Failed to infer local_path with error: {}", err))?,
         };
 
-        let remote_ip = match conf.remote_ip {
+        let remote_ip = match cli.remote_ip {
             Some(ip) => ip,
-            None => Self::default_remote_ip(&docker_host)?,
+            None => Self::default_remote_ip(&docker_host)
+                .map_err(|err| anyhow!("Failed to infer remote_ip with error: {}", err))?,
         };
-        let remote_user = match conf.remote_user {
+        let remote_user = match cli.remote_user {
             Some(user) => user,
-            None => Self::default_remote_user(&docker_host)?,
+            None => Self::default_remote_user(&docker_host)
+                .map_err(|err| anyhow!("Failed to infer remote_user with error: {}", err))?,
         };
-        let remote_path = match conf.remote_path {
+        let remote_path = match cli.remote_path {
             Some(path) => path,
-            None => Self::default_remote_path()?,
+            None => Self::default_remote_path()
+                .map_err(|err| anyhow!("Failed to infer remote_path with error: {}", err))?,
         };
 
         Ok(Self {
@@ -121,20 +128,17 @@ impl Context {
 
     // TODO: Implement something more robust and generic
     async fn default_local_ip() -> Result<IpAddr> {
-        let out = ProcessCommand::new("ipconfig")
-            .arg("getifaddr")
-            .arg("en0")
-            .output()
-            .await?
-            .stdout;
-        Ok(String::from_utf8(out)?.parse()?)
+        Ok(local_ip()?)
     }
 
     async fn default_local_user() -> Result<String> {
-        let out = ProcessCommand::new("whoami")
+        let mut out = ProcessCommand::new("whoami")
             .output()
             .await?
             .stdout;
+        // Remove the last newline from output
+        out.remove(out.len() - 1);
+
         Ok(String::from_utf8(out)?)
     }
 
@@ -165,13 +169,21 @@ impl Context {
 
     // TODO: Handle errors
     fn default_remote_path() -> Result<PathBuf> {
+        // TODO: Clean out unrequired quotes
         Ok(PathBuf::from(format!(
             "/tmp/{:?}",
             env::current_dir()?
                 .file_name()
-                .unwrap()
+                .expect("can't get current dir name")
         )))
     }
+}
+
+/// The context of one execution of rdocker
+/// Contains data and state that will be passed along one run of rdocker
+#[derive(Clone)]
+pub struct Context {
+    env_conf: EnvConf,
 }
 
 pub struct ClientWrapper {
@@ -181,7 +193,7 @@ pub struct ClientWrapper {
 
 impl ClientWrapper {
     pub async fn new(ctx: Context) -> Result<Self> {
-        let server_address = format!("http://{}:50051", ctx.remote_ip);
+        let server_address = format!("http://{}:50051", ctx.env_conf.remote_ip);
         let inner = RDockerClient::connect(server_address).await?;
         Ok(Self { ctx, inner })
     }
@@ -196,21 +208,25 @@ impl ClientWrapper {
     }
 
     async fn register_env(&mut self) -> Result<()> {
-        let ctx = self.ctx.clone();
+        let env_conf = self.ctx.env_conf.clone();
         let env_desc = EnvDescriptor {
-            env_id: ctx.env_id,
+            env_id: env_conf.env_id,
 
-            local_ip:   ctx.local_ip.to_string(),
-            local_user: ctx.local_user.to_string(),
-            local_path: ctx
+            local_ip:   env_conf.local_ip.to_string(),
+            local_user: env_conf
+                .local_user
+                .to_string(),
+            local_path: env_conf
                 .local_path
                 .to_str()
                 .unwrap()
                 .into(),
 
-            remote_ip:   ctx.remote_ip.to_string(),
-            remote_user: ctx.remote_user.to_string(),
-            remote_path: ctx
+            remote_ip:   env_conf.remote_ip.to_string(),
+            remote_user: env_conf
+                .remote_user
+                .to_string(),
+            remote_path: env_conf
                 .remote_path
                 .to_str()
                 .unwrap()

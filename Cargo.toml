@@ -1,5 +1,6 @@
 [workspace]
 members = [
+    "rdocker_common",
     "rdocker_model",
     "rdocker",
     "rdockerd",

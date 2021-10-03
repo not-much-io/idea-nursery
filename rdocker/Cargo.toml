@@ -7,6 +7,7 @@ edition = "2018"
 
 [dependencies]
 rdocker_model = {path = "../rdocker_model"}
+rdocker_common = {path = "../rdocker_common"}
 
 # Standard runtime tools
 anyhow = "1.0"
@@ -17,5 +18,8 @@ tokio = {version = "1.10", features = ["full"]}
 
 whoami = "1.1"
 serde = "1.0"
+serde_yaml = "0.8"
 structopt ="0.3"
 tonic = "0.5"
+regex = "1.5"
+local-ip-address = "0.4"

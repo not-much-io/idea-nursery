@@ -1,10 +1,10 @@
 mod lib;
 
-use anyhow::Result;
+use anyhow::{anyhow, Result};
+use lib::GenConfCLI;
 use log::{error, LevelFilter};
-use rdocker_model::rdocker::EchoRequest;
+use std::fs::{File, OpenOptions};
 use structopt::StructOpt;
-use tonic::Request;
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -13,18 +13,8 @@ async fn main() -> Result<()> {
         .init();
 
     let cli = lib::CLI::from_args();
-    let conf = lib::EnvConfig {
-        env_id:      todo!(),
-        local_ip:    todo!(),
-        local_user:  todo!(),
-        local_path:  todo!(),
-        remote_ip:   todo!(),
-        remote_user: todo!(),
-        remote_path: todo!(),
-    };
-    let ctx = lib::Context::new(conf).await?;
-    let client = lib::ClientWrapper::new(ctx).await?;
-    if let Err(err) = try_main(client).await {
+
+    if let Err(err) = try_main(cli).await {
         error!("{}", err);
         std::process::exit(1);
     };
@@ -32,10 +22,31 @@ async fn main() -> Result<()> {
     Ok(())
 }
 
-async fn try_main(_client: lib::ClientWrapper) -> Result<()> {
-    let _request = Request::new(EchoRequest {
-        message: "echo".into(),
-    });
+async fn try_main(cli: lib::CLI) -> Result<()> {
+    match cli {
+        lib::CLI::GenConf(cli_input) => generate_config(cli_input).await?,
+        lib::CLI::SetUpEnv { env_id } => todo!(),
+        lib::CLI::TearDownEnv { env_id } => todo!(),
+    }
+    Ok(())
+}
+
+async fn generate_config(cli_input: GenConfCLI) -> Result<()> {
+    let conf = lib::EnvConf::new(cli_input)
+        .await
+        .map_err(|err| anyhow!("Failed to construct environment configuration: {}", err))?;
+    let file = OpenOptions::new()
+        .create(true)
+        .truncate(true)
+        .write(true)
+        .open(format!("rd_env_conf.{}.yaml", conf.env_id))
+        .map_err(|err| {
+            anyhow!(
+                "Error from opening file for writing configuration file: '{}'",
+                err
+            )
+        })?;
+    serde_yaml::to_writer(file, &conf)?;
 
     Ok(())
 }

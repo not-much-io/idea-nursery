@@ -9,8 +9,10 @@ edition = "2018"
 rdocker = {path = "../rdocker"}
 rdockerd = {path = "../rdockerd"}
 rdocker_model = {path = "../rdocker_model"}
+rdocker_common = {path = "../rdocker_common"}
 
 anyhow = "1.0"
 futures = "0.3"
 tokio = {version = "1.10", features = ["full"]}
 whoami = "1.1"
+serde_yaml = "0.8"
