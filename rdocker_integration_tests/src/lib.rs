@@ -92,34 +92,4 @@ mod tests {
 
         Ok(())
     }
-
-    #[ignore]
-    #[tokio::test]
-    pub async fn test_echo() -> Result<()> {
-        once_init_tests().await?;
-
-        let output = Command::new("cargo")
-            .current_dir("/workspaces/idea-nursery")
-            .arg("run")
-            .arg("--bin")
-            .arg("rdocker")
-            .output()
-            .map_err(|err| anyhow!("rdocker run failed: {}", err))?;
-
-        let stderr = from_utf8(&output.stderr)?;
-        let stdout = from_utf8(&output.stdout)?;
-        if !output.status.success() {
-            return Err(anyhow!(
-                "running rdocker didn't finish successfully\n
-                ========== stdout ==========\n
-                {}
-                ========== stderr ==========\n
-                {}",
-                stderr,
-                stdout,
-            ));
-        }
-
-        Ok(())
-    }
 }

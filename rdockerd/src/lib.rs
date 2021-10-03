@@ -13,13 +13,6 @@ pub struct RDockerService {
 
 #[tonic::async_trait]
 impl RDocker for RDockerService {
-    async fn echo(&self, request: Request<EchoRequest>) -> Result<Response<EchoResponse>, Status> {
-        let reply = EchoResponse {
-            message: request.into_inner().message,
-        };
-        Ok(Response::new(reply))
-    }
-
     async fn register_env(
         &self,
         request: Request<RegisterEnvRequest>,

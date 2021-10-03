@@ -1,14 +1,4 @@
 #[derive(Clone, PartialEq, ::prost::Message)]
-pub struct EchoRequest {
-    #[prost(string, tag = "1")]
-    pub message: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct EchoResponse {
-    #[prost(string, tag = "1")]
-    pub message: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct EnvDescriptor {
     #[prost(string, tag = "1")]
     pub env_id:      ::prost::alloc::string::String,
@@ -195,26 +185,6 @@ pub mod r_docker_client {
         pub fn accept_gzip(mut self) -> Self {
             self.inner = self.inner.accept_gzip();
             self
-        }
-        #[doc = " Just an example, to be removed"]
-        pub async fn echo(
-            &mut self,
-            request: impl tonic::IntoRequest<super::EchoRequest>,
-        ) -> Result<tonic::Response<super::EchoResponse>, tonic::Status> {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::new(
-                        tonic::Code::Unknown,
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
-            let codec = tonic::codec::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static("/rdocker.RDocker/Echo");
-            self.inner
-                .unary(request.into_request(), path, codec)
-                .await
         }
         #[doc = " Register a new environment in remote"]
         #[doc = " Safe operation that fails if any conflicts with existing envs"]
@@ -434,11 +404,6 @@ pub mod r_docker_server {
     #[doc = "Generated trait containing gRPC methods that should be implemented for use with RDockerServer."]
     #[async_trait]
     pub trait RDocker: Send + Sync + 'static {
-        #[doc = " Just an example, to be removed"]
-        async fn echo(
-            &self,
-            request: tonic::Request<super::EchoRequest>,
-        ) -> Result<tonic::Response<super::EchoResponse>, tonic::Status>;
         #[doc = " Register a new environment in remote"]
         #[doc = " Safe operation that fails if any conflicts with existing envs"]
         #[doc = " Reuses processes that other envs have already set up"]
@@ -536,37 +501,6 @@ pub mod r_docker_server {
         fn call(&mut self, req: http::Request<B>) -> Self::Future {
             let inner = self.inner.clone();
             match req.uri().path() {
-                "/rdocker.RDocker/Echo" => {
-                    #[allow(non_camel_case_types)]
-                    struct EchoSvc<T: RDocker>(pub Arc<T>);
-                    impl<T: RDocker> tonic::server::UnaryService<super::EchoRequest> for EchoSvc<T> {
-                        type Response = super::EchoResponse;
-                        type Future = BoxFuture<tonic::Response<Self::Response>, tonic::Status>;
-                        fn call(
-                            &mut self,
-                            request: tonic::Request<super::EchoRequest>,
-                        ) -> Self::Future {
-                            let inner = self.0.clone();
-                            let fut = async move { (*inner).echo(request).await };
-                            Box::pin(fut)
-                        }
-                    }
-                    let accept_compression_encodings = self.accept_compression_encodings;
-                    let send_compression_encodings = self.send_compression_encodings;
-                    let inner = self.inner.clone();
-                    let fut = async move {
-                        let inner = inner.0;
-                        let method = EchoSvc(inner);
-                        let codec = tonic::codec::ProstCodec::default();
-                        let mut grpc = tonic::server::Grpc::new(codec).apply_compression_config(
-                            accept_compression_encodings,
-                            send_compression_encodings,
-                        );
-                        let res = grpc.unary(method, req).await;
-                        Ok(res)
-                    };
-                    Box::pin(fut)
-                }
                 "/rdocker.RDocker/RegisterEnv" => {
                     #[allow(non_camel_case_types)]
                     struct RegisterEnvSvc<T: RDocker>(pub Arc<T>);

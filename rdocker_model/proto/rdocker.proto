@@ -3,9 +3,6 @@ package rdocker;
 
 // TODO: Currently just local network funcionality, using local ips, etc.
 service RDocker {
-    // Just an example, to be removed
-    rpc Echo(EchoRequest) returns (EchoResponse);
-    
     // ========== Setting Up ==========
 
     // Register a new environment in remote
@@ -47,14 +44,6 @@ service RDocker {
 
     // List all the envs in remote
     rpc ListEnvs(ListEnvsRequest) returns (ListEnvsResponse);
-}
-
-message EchoRequest {
-    string message = 1;
-}
-
-message EchoResponse {
-    string message = 1;
 }
 
 message EnvDescriptor {
