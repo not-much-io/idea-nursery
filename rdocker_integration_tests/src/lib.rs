@@ -8,19 +8,17 @@ mod tests {
 
     pub async fn start_rdockerd() -> Result<()> {
         // NOTE: Exit code 1 when nothing found
-        let pgrep_output = Command::new("pgrep")
+        let pid = Command::new("pgrep")
             .arg("-x")
             .arg("rdockerd")
-            .output()
-            .map_err(|err| anyhow!("Failed to execute pgrep: '{}'", err))?
-            .stdout;
-        let pgrep_stdout = from_utf8(&pgrep_output)?;
+            .output_value()
+            .map_err(|err| anyhow!("Failed to execute pgrep: '{}'", err))?;
 
-        if !pgrep_stdout.is_empty() {
+        if !pid.is_empty() {
             Command::new("kill")
                 .arg("-9")
-                .arg(pgrep_stdout) // a pid
-                .output_strict()
+                .arg(pid)
+                .output()
                 .map_err(|err| anyhow!("Failed to execute kill: '{}'", err))?;
 
             // TODO: Be smarter about this

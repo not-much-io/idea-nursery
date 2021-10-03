@@ -6,6 +6,7 @@ use rdocker_model::rdocker::{
     env_descriptor, r_docker_client::RDockerClient, EnvDescriptor, RegisterEnvRequest,
 };
 use serde::{Deserialize, Serialize};
+use std::fs;
 use structopt::StructOpt;
 use tokio::process::Command as ProcessCommand;
 use tonic::transport::Channel;
@@ -85,34 +86,34 @@ impl EnvConf {
             Some(ip) => ip,
             None => Self::default_local_ip()
                 .await
-                .map_err(|err| anyhow!("Failed to infer local_ip with error: {}", err))?,
+                .map_err(|err| anyhow!("Failed to infer local_ip with error: '{}'", err))?,
         };
         let local_user = match cli.local_user {
             Some(user) => user,
             None => Self::default_local_user()
                 .await
-                .map_err(|err| anyhow!("Failed to infer local_user with error: {}", err))?,
+                .map_err(|err| anyhow!("Failed to infer local_user with error: '{}'", err))?,
         };
         let local_path = match cli.local_path {
             Some(path) => path,
             None => Self::default_local_path()
-                .map_err(|err| anyhow!("Failed to infer local_path with error: {}", err))?,
+                .map_err(|err| anyhow!("Failed to infer local_path with error: '{}'", err))?,
         };
 
         let remote_ip = match cli.remote_ip {
             Some(ip) => ip,
             None => Self::default_remote_ip(&docker_host)
-                .map_err(|err| anyhow!("Failed to infer remote_ip with error: {}", err))?,
+                .map_err(|err| anyhow!("Failed to infer remote_ip with error: '{}'", err))?,
         };
         let remote_user = match cli.remote_user {
             Some(user) => user,
             None => Self::default_remote_user(&docker_host)
-                .map_err(|err| anyhow!("Failed to infer remote_user with error: {}", err))?,
+                .map_err(|err| anyhow!("Failed to infer remote_user with error: '{}'", err))?,
         };
         let remote_path = match cli.remote_path {
             Some(path) => path,
             None => Self::default_remote_path()
-                .map_err(|err| anyhow!("Failed to infer remote_path with error: {}", err))?,
+                .map_err(|err| anyhow!("Failed to infer remote_path with error: '{}'", err))?,
         };
 
         Ok(Self {
@@ -124,6 +125,33 @@ impl EnvConf {
             remote_user,
             remote_path,
         })
+    }
+
+    pub async fn load_from_file(env_id: &str) -> Result<Self> {
+        let file = fs::File::open(Self::env_conf_file_name(env_id)).map_err(|err| {
+            anyhow!(
+                "Failed to open configuration file for env '{}' (expected: {})",
+                env_id,
+                err,
+            )
+        })?;
+        Ok(serde_yaml::from_reader(file)?)
+    }
+
+    pub fn save_to_file(&self) -> Result<()> {
+        let file = fs::OpenOptions::new()
+            .truncate(true)
+            .create(true)
+            .write(true)
+            .open(Self::env_conf_file_name(&self.env_id))
+            .map_err(|err| {
+                anyhow!(
+                    "Error from opening file for writing configuration file: '{}'",
+                    err
+                )
+            })?;
+
+        Ok(serde_yaml::to_writer(file, &self)?)
     }
 
     // TODO: Implement something more robust and generic
@@ -177,13 +205,23 @@ impl EnvConf {
                 .expect("can't get current dir name")
         )))
     }
+
+    fn env_conf_file_name(env_id: &str) -> String {
+        format!("rd_env_conf.{}.yaml", env_id)
+    }
 }
 
 /// The context of one execution of rdocker
 /// Contains data and state that will be passed along one run of rdocker
 #[derive(Clone)]
 pub struct Context {
-    env_conf: EnvConf,
+    conf: EnvConf,
+}
+
+impl Context {
+    pub fn new(conf: EnvConf) -> Self {
+        Self { conf }
+    }
 }
 
 pub struct ClientWrapper {
@@ -193,7 +231,7 @@ pub struct ClientWrapper {
 
 impl ClientWrapper {
     pub async fn new(ctx: Context) -> Result<Self> {
-        let server_address = format!("http://{}:50051", ctx.env_conf.remote_ip);
+        let server_address = format!("http://{}:50051", ctx.conf.remote_ip);
         let inner = RDockerClient::connect(server_address).await?;
         Ok(Self { ctx, inner })
     }
@@ -208,7 +246,7 @@ impl ClientWrapper {
     }
 
     async fn register_env(&mut self) -> Result<()> {
-        let env_conf = self.ctx.env_conf.clone();
+        let env_conf = self.ctx.conf.clone();
         let env_desc = EnvDescriptor {
             env_id: env_conf.env_id,
 

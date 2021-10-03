@@ -1,7 +1,6 @@
 mod lib;
 
 use anyhow::{anyhow, Result};
-use lib::GenConfCLI;
 use log::{error, LevelFilter};
 use std::fs::{File, OpenOptions};
 use structopt::StructOpt;
@@ -25,28 +24,23 @@ async fn main() -> Result<()> {
 async fn try_main(cli: lib::CLI) -> Result<()> {
     match cli {
         lib::CLI::GenConf(cli_input) => generate_config(cli_input).await?,
-        lib::CLI::SetUpEnv { env_id } => todo!(),
+        lib::CLI::SetUpEnv { env_id } => set_up_env(&env_id).await?,
         lib::CLI::TearDownEnv { env_id } => todo!(),
     }
     Ok(())
 }
 
-async fn generate_config(cli_input: GenConfCLI) -> Result<()> {
+async fn generate_config(cli_input: lib::GenConfCLI) -> Result<()> {
     let conf = lib::EnvConf::new(cli_input)
         .await
-        .map_err(|err| anyhow!("Failed to construct environment configuration: {}", err))?;
-    let file = OpenOptions::new()
-        .create(true)
-        .truncate(true)
-        .write(true)
-        .open(format!("rd_env_conf.{}.yaml", conf.env_id))
-        .map_err(|err| {
-            anyhow!(
-                "Error from opening file for writing configuration file: '{}'",
-                err
-            )
-        })?;
-    serde_yaml::to_writer(file, &conf)?;
+        .map_err(|err| anyhow!("Failed to construct environment configuration: '{}'", err))?;
+    Ok(conf.save_to_file()?)
+}
+
+async fn set_up_env(env_id: &str) -> Result<()> {
+    let conf = lib::EnvConf::load_from_file(&env_id).await?;
+    let ctx = lib::Context::new(conf);
+    let client = lib::ClientWrapper::new(ctx);
 
     Ok(())
 }

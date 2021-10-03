@@ -9,6 +9,12 @@ pub trait CommandExt {
     /// Like output() but translates non-zero error codes as Err()
     fn output_strict(&mut self) -> Result<Output>;
 
+    /// Like output() but gives only stdout as String and trims any trailing newlines
+    fn output_value(&mut self) -> Result<String>;
+
+    /// Like output_strict() but gives only stdout as String and trims any trailing newlines
+    fn output_strict_value(&mut self) -> Result<String>;
+
     fn display(&self) -> Result<String>;
 }
 
@@ -28,6 +34,18 @@ impl CommandExt for Command {
             ));
         }
         Ok(output)
+    }
+
+    fn output_value(&mut self) -> Result<String> {
+        Ok(String::from_utf8(self.output()?.stdout)?
+            .trim_end_matches('\n')
+            .to_string())
+    }
+
+    fn output_strict_value(&mut self) -> Result<String> {
+        Ok(String::from_utf8(self.output_strict()?.stdout)?
+            .trim_end_matches('\n')
+            .to_string())
     }
 
     fn display(&self) -> Result<String> {
