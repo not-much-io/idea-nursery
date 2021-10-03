@@ -11,7 +11,8 @@ mod tests {
         let pgrep_output = Command::new("pgrep")
             .arg("-x")
             .arg("rdockerd")
-            .output()?
+            .output()
+            .map_err(|err| anyhow!("Failed to execute pgrep: '{}'", err))?
             .stdout;
         let pgrep_stdout = from_utf8(&pgrep_output)?;
 
@@ -19,7 +20,8 @@ mod tests {
             Command::new("kill")
                 .arg("-9")
                 .arg(pgrep_stdout) // a pid
-                .output_strict()?;
+                .output_strict()
+                .map_err(|err| anyhow!("Failed to execute kill: '{}'", err))?;
 
             // TODO: Be smarter about this
             tokio::time::sleep(Duration::from_millis(500)).await;
@@ -30,7 +32,8 @@ mod tests {
             .arg("run")
             .arg("--bin")
             .arg("rdockerd")
-            .spawn()?;
+            .spawn()
+            .map_err(|err| anyhow!("Failed to run rdockerd: '{}'", err))?;
 
         // TODO: Be smarter about this
         tokio::time::sleep(Duration::from_millis(500)).await;
@@ -69,8 +72,13 @@ mod tests {
             .arg("test_env")
             .output_strict()?;
 
-        let file = fs::File::open("../rd_env_conf.test_env.yaml")?;
-        // Reading process already checks IPs since it parses thme to IpAddr
+        let file = fs::File::open("../rd_env_conf.test_env.yaml").map_err(|err| {
+            anyhow!(
+                "Configuration file not found after should have been generated: '{}'",
+                err
+            )
+        })?;
+        // Reading process already checks IPs since it parses them to IpAddr
         let conf: EnvConf = serde_yaml::from_reader(file)?;
 
         assert_eq!(conf.env_id, "test_env");
