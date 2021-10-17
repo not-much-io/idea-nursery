@@ -13,7 +13,7 @@ RUN apt-get update \
 ENV RUSTFLAGS "-C link-arg=-fuse-ld=lld"
 
 # To check status of tools by nightly versions see: https://rust-lang.github.io/rustup-components-history/index.html
-ENV TOOLCHAIN_VERSION=nightly-2021-09-30
+ENV TOOLCHAIN_VERSION=nightly-2021-10-17
 
 # Install nightly toolchain and components
 RUN rustup toolchain uninstall stable \
