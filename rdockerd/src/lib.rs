@@ -24,7 +24,7 @@ impl RDocker for RDockerService {
 
         let mut env_registry = self.env_registry.lock().await;
         if env_registry.contains_key(&env_desc.env_id) {
-            return Err(Status::invalid_argument("Environment ID already is use"));
+            return Err(Status::invalid_argument("Environment ID already in use"));
         }
         env_registry.insert(env_desc.env_id.clone(), env_desc.clone());
 

@@ -2,6 +2,9 @@ mod lib;
 
 use anyhow::{anyhow, Result};
 use log::{error, LevelFilter};
+use rdocker_model::rdocker::EnvDescriptor;
+use serde::Serialize;
+use serde_yaml;
 use structopt::StructOpt;
 
 #[tokio::main]
@@ -52,10 +55,37 @@ async fn set_up_env(env_id: &str) -> Result<()> {
 async fn read_env(env_id: &str) -> Result<()> {
     let conf = lib::EnvConf::load_from_file(env_id).await?;
     let ctx = lib::Context::new(conf);
-    lib::ClientWrapper::new(ctx)
+    let env_desc = lib::ClientWrapper::new(ctx)
         .await?
         .read_env()
         .await?;
+    let env_desc_string = serde_yaml::to_string(&SerializableEnvDescriptor::new(env_desc))?;
+    println!("{}", env_desc_string);
 
     Ok(())
+}
+
+#[derive(Serialize)]
+struct SerializableEnvDescriptor {
+    env_id:      String,
+    local_ip:    String,
+    local_user:  String,
+    local_path:  String,
+    remote_ip:   String,
+    remote_user: String,
+    remote_path: String,
+}
+
+impl SerializableEnvDescriptor {
+    fn new(env_desc: EnvDescriptor) -> Self {
+        Self {
+            env_id:      env_desc.env_id,
+            local_ip:    env_desc.local_ip,
+            local_user:  env_desc.local_user,
+            local_path:  env_desc.local_path,
+            remote_ip:   env_desc.remote_ip,
+            remote_user: env_desc.remote_user,
+            remote_path: env_desc.remote_path,
+        }
+    }
 }

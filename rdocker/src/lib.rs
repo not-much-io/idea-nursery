@@ -295,7 +295,7 @@ impl ClientWrapper {
         Ok(())
     }
 
-    pub async fn read_env(&mut self) -> Result<()> {
+    pub async fn read_env(&mut self) -> Result<EnvDescriptor> {
         let env_id = self
             .ctx
             .conf
@@ -313,8 +313,6 @@ impl ClientWrapper {
             .env_desc
             .unwrap();
 
-        info!("Environment Descriptor for '{}': {:?}", env_id, env_desc);
-
-        Ok(())
+        Ok(env_desc)
     }
 }
