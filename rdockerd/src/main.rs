@@ -1,3 +1,4 @@
+#![feature(path_try_exists)]
 mod lib;
 
 use lib::{RDockerServer, RDockerService};

@@ -1,4 +1,3 @@
-#![feature(command_access)]
 use std::ffi::OsStr;
 // TODO: Why doesn't tokio::process expose Output?
 pub use std::process::{Command, Output};

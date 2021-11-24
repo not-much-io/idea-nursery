@@ -4,8 +4,7 @@ use anyhow::{anyhow, Result};
 use local_ip_address::local_ip;
 use log::info;
 use rdocker_model::rdocker::{
-    env_descriptor, r_docker_client::RDockerClient, EnvDescriptor, ReadEnvRequest,
-    RegisterEnvRequest,
+    r_docker_client::RDockerClient, EnvDescriptor, ReadEnvRequest, RegisterEnvRequest,
 };
 use serde::{Deserialize, Serialize};
 use std::fs;
@@ -281,9 +280,6 @@ impl ClientWrapper {
                 .to_str()
                 .unwrap()
                 .into(),
-
-            status: env_descriptor::Status::Unregistered.into(),
-            error:  env_descriptor::Error::None.into(),
         };
 
         self.inner
@@ -310,7 +306,9 @@ impl ClientWrapper {
 
         let env_desc = resp
             .into_inner()
-            .env_desc
+            .env
+            .unwrap()
+            .desc
             .unwrap();
 
         Ok(env_desc)

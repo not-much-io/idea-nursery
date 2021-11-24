@@ -39,7 +39,7 @@ mod tests {
 
     fn rdocker(subcommand: &str, env_id: &str) -> Result<String> {
         Command::new("cargo")
-            .env("DOCKER_HOST", "ssh://vscode@127.0.0.1")
+            .env("DOCKER_HOST", "ssh://remote_user@127.0.0.1")
             .current_dir("/workspaces/idea-nursery")
             .arg("run")
             .arg("--bin")
@@ -92,7 +92,7 @@ mod tests {
             PathBuf::from("/workspaces/idea-nursery")
         );
         assert_eq!(env_conf.remote_ip, IpAddr::from_str("127.0.0.1")?);
-        assert_eq!(env_conf.remote_user, "vscode");
+        assert_eq!(env_conf.remote_user, "remote_user");
         assert_eq!(
             env_conf.remote_path,
             PathBuf::from(r#"/tmp/"idea-nursery""#)

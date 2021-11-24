@@ -4,5 +4,6 @@ members = [
     "rdocker_model",
     "rdocker",
     "rdockerd",
-    "rdocker_integration_tests"
+    "rdocker_integration_tests",
+    "simulations"
 ]

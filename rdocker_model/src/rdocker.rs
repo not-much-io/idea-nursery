@@ -1,4 +1,32 @@
 #[derive(Clone, PartialEq, ::prost::Message)]
+pub struct Environment {
+    #[prost(message, optional, tag = "1")]
+    pub desc:   ::core::option::Option<EnvDescriptor>,
+    #[prost(enumeration = "environment::Status", tag = "9")]
+    pub status: i32,
+    #[prost(enumeration = "environment::Error", tag = "10")]
+    pub error:  i32,
+}
+/// Nested message and enum types in `Environment`.
+pub mod environment {
+    #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+    #[repr(i32)]
+    pub enum Status {
+        Registered = 0,
+        SettingUpInMemoryFs = 1,
+        SettingUpTransparentProxy = 2,
+        SettingUpFsSync = 3,
+        Ready = 4,
+        Errored = 5,
+    }
+    #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+    #[repr(i32)]
+    pub enum Error {
+        None = 0,
+        Unspecified = 1,
+    }
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct EnvDescriptor {
     #[prost(string, tag = "1")]
     pub env_id:      ::prost::alloc::string::String,
@@ -14,32 +42,6 @@ pub struct EnvDescriptor {
     pub remote_user: ::prost::alloc::string::String,
     #[prost(string, tag = "7")]
     pub remote_path: ::prost::alloc::string::String,
-    /// TODO: Should really be part of this descriptor?
-    #[prost(enumeration = "env_descriptor::Status", tag = "9")]
-    pub status:      i32,
-    #[prost(enumeration = "env_descriptor::Error", tag = "10")]
-    pub error:       i32,
-}
-/// Nested message and enum types in `EnvDescriptor`.
-pub mod env_descriptor {
-    #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-    #[repr(i32)]
-    pub enum Status {
-        Unregistered = 0,
-        Registered = 2,
-        SettingUpInMemoryFs = 3,
-        SettingUpTransparentProxy = 4,
-        SettingUpFsSync = 5,
-        Ready = 6,
-        Errored = 7,
-    }
-    #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-    #[repr(i32)]
-    pub enum Error {
-        /// TODO: Enumerate
-        None = 0,
-        Unspecified = 1,
-    }
 }
 // ========== Setting Up ==========
 
@@ -111,7 +113,7 @@ pub struct ReadEnvRequest {
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ReadEnvResponse {
     #[prost(message, optional, tag = "1")]
-    pub env_desc: ::core::option::Option<EnvDescriptor>,
+    pub env: ::core::option::Option<Environment>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ListEnvsRequest {}

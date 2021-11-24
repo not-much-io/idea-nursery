@@ -46,6 +46,27 @@ service RDocker {
     rpc ListEnvs(ListEnvsRequest) returns (ListEnvsResponse);
 }
 
+message Environment {
+    EnvDescriptor desc = 1;
+
+    enum Status {
+        Registered                = 0;
+        SettingUpInMemoryFs       = 1;
+        SettingUpTransparentProxy = 2;
+        SettingUpFsSync           = 3;
+        Ready                     = 4;
+        Errored                   = 5;
+    }
+
+    enum Error {
+        None        = 0;
+        Unspecified = 1;
+    }
+
+    Status status = 9;
+    Error  error  = 10;
+}
+
 message EnvDescriptor {
     string env_id = 1;
 
@@ -56,26 +77,6 @@ message EnvDescriptor {
     string remote_ip   = 5;
     string remote_user = 6;
     string remote_path = 7;
-
-    enum Status {
-        Unregistered              = 0;
-        Registered                = 2;
-        SettingUpInMemoryFs       = 3;
-        SettingUpTransparentProxy = 4;
-        SettingUpFsSync           = 5;
-        Ready                     = 6;
-        Errored                   = 7;
-    }
-
-    enum Error {
-        // TODO: Enumerate
-        None        = 0;
-        Unspecified = 1;
-    }
-
-    // TODO: Should really be part of this descriptor?
-    Status status = 9;
-    Error  error  = 10;
 }
 
 // ========== Setting Up ==========
@@ -137,7 +138,7 @@ message ReadEnvRequest {
 }
 
 message ReadEnvResponse {
-    EnvDescriptor env_desc = 1;
+    Environment env = 1;
 }
 
 message ListEnvsRequest {}
