@@ -20,6 +20,16 @@
 			],
 			"group": "test",
 			"label": "rust: dev-loop (cli)"
+		},
+		{
+			"type": "shell",
+			"command": "cd simulations && cargo test --release -- --nocapture",
+			"args": [],
+			"problemMatcher": [
+				"$rustc"
+			],
+			"group": "test",
+			"label": "rust: simulation"
 		}
 	]
 }
